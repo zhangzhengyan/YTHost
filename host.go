@@ -33,7 +33,7 @@ type hst struct {
 	outSessions map[string][]*yamux.Session // peerID - []Session
 	methodHandlerMap map[string]MsgHandlerFunc // 方法名-具体方法
 	methodSignMap map[string]string // 方法签名-方法名
-	peeridmethodStreamMap map[string]*yamux.Stream // peerID+方法名 - 流
+	peeridmethodStreamMap map[string]net.Conn // peerID+方法名 - 流
 }
 
 func NewHost() Host {
@@ -42,7 +42,7 @@ func NewHost() Host {
 		outSessions:make(map[string][]*yamux.Session),
 		methodHandlerMap:make(map[string]MsgHandlerFunc),
 		methodSignMap:make(map[string]string),
-		peeridmethodStreamMap:make(map[string]*yamux.Stream),
+		peeridmethodStreamMap:make(map[string]net.Conn),
 	}
 }
 
@@ -111,7 +111,7 @@ func (h *hst) SendMsg(id string, msgType string, msg []byte) ([]byte, error) {
 		stream, _ = h.outSessions[id][0].Open()
 		// 将当前的流 存入缓存，供后续使用
 		// TODO 下面这一句要加上。
-		//h.peeridmethodStreamMap[id + msgType] = stream
+		h.peeridmethodStreamMap[id + msgType] = stream
 	} else {
 		stream = h.peeridmethodStreamMap[id + msgType]
 	}
