@@ -5,8 +5,13 @@ import (
 	"YTHost/Tool"
 	"encoding/hex"
 	"fmt"
+	ytcrypto "github.com/yottachain/YTCrypto"
 	"testing"
 )
+
+var localMa = "/ip4/0.0.0.0/tcp/9000"
+var localMa2 = "/ip4/0.0.0.0/tcp/9001"
+var localMa3 = "/ip4/0.0.0.0/tcp/9002"
 
 func TestMd5(t *testing.T)  {
 	test := "test"
@@ -16,27 +21,28 @@ func TestMd5(t *testing.T)  {
 	fmt.Println(len(host.GetMethodSign(test)))
 }
 
-func TestFuncInArray(t *testing.T)  {
-	a := make(map[string]host.MsgHandlerFunc)
-	a["ping"] = func(msgType string, msg []byte, publicKey string) ([]byte, error) {
-		if string(msgType) == "ping" {
-			return []byte("pong"), nil
-		} else {
-			return []byte("error"), nil
-		}
-	}
-	reply, _ := a["ping"]("ping", []byte{}, "")
-	fmt.Println(string(reply))
+func TestAddr(t *testing.T)  {
+	privKey, _ := ytcrypto.CreateKey()
+	h := host.NewHost(privKey, localMa)
+	fmt.Println(h.Addrs())
+}
+
+func TestNewHost(t *testing.T) {
+	privKey, _ := ytcrypto.CreateKey()
+	h := host.NewHost(privKey, localMa2)
+	fmt.Println(h.Addrs())
 }
 
 // TestSendMessage 测试发送接受消息
 func TestStartServer(t *testing.T) {
 	fmt.Println("test start server.....")
 	// 创建host1模拟接受消息
-	h1 := host.NewHost()
+	privKey, _ := ytcrypto.CreateKey()
+	h1 := host.NewHost(localMa, privKey)
 	fmt.Println("new host .....")
 
-	tcpListener := h1.NewListener("127.0.0.1", "8980")
+	//tcpListener := h1.NewListener("127.0.0.1", "8980")
+	tcpListener := h1.NewListener("0.0.0.0", "8980")
 	fmt.Println("new server done .....")
 
 	msgHandler := func(msgType string, msg []byte, publicKey string) ([]byte, error) {
@@ -54,11 +60,14 @@ func TestStartServer(t *testing.T) {
 
 func TestSendMsg(t *testing.T)  {
 	// 创建host2模拟发送消息
-	h2 := host.NewHost()
+	privKey, _ := ytcrypto.CreateKey()
+
+	h2 := host.NewHost(privKey, localMa2)
 
 	//// 连接节点1
 	addrs := make([]string, 0)
 	addrs = append(addrs, "127.0.0.1:8980")
+	//addrs = append(addrs, "172.20.10.2:8980")
 	err := h2.Connect("1", addrs)
 	if err != nil {
 		t.Fatalf("connect err :%s", err)

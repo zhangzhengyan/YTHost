@@ -4,6 +4,7 @@ import (
 	"YTHost/Tool"
 	"encoding/hex"
 	"fmt"
+	"github.com/multiformats/go-multiaddr"
 	"net"
 	"time"
 	"yamux"
@@ -34,17 +35,27 @@ type hst struct {
 	methodHandlerMap map[string]MsgHandlerFunc // 方法名-具体方法
 	methodSignMap map[string]string // 方法签名-方法名
 	peeridmethodStreamMap map[string]net.Conn // peerID+方法名 - 流
+	addrs []string // 本地内网、外网地址 + 对应端口
 }
 
-func NewHost() Host {
+func NewHost(privateKey string, listenAddrs ...string) Host {
+	// 获取本机端口
+	ports := Tool.GetPortsFromMultiAddr(listenAddrs)
+	if len(ports) <= 0 {
+		return nil
+	}
+	// 拼装addr
+	multiAddr := Tool.GetMultiAddr(listenAddrs)
 	return &hst{serverSession:nil,
 		outConnects:make(map[string][]net.Conn),
 		outSessions:make(map[string][]*yamux.Session),
 		methodHandlerMap:make(map[string]MsgHandlerFunc),
 		methodSignMap:make(map[string]string),
 		peeridmethodStreamMap:make(map[string]net.Conn),
+		addrs:multiAddr,
 	}
 }
+
 
 func init()  {
 	// TODO 参数注册
@@ -60,10 +71,22 @@ func (h *hst) ID() string {
 }
 
 func (h *hst) Addrs() []string {
-	length := 16
-	addrs := make([]string, length)
-	// TODO
-	return addrs
+	return h.addrs
+}
+
+// multiAddr 转 常规地址
+
+// 常规地址 转 multiAddr
+func StringListToMaddrs(addrs []string) ([]multiaddr.Multiaddr, error) {
+	maddrs := make([]multiaddr.Multiaddr, len(addrs))
+	for k, addr := range addrs {
+		maddr, err := multiaddr.NewMultiaddr(addr)
+		if err != nil {
+			return maddrs, err
+		}
+		maddrs[k] = maddr
+	}
+	return maddrs, nil
 }
 
 // Connect 连接节点
