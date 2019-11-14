@@ -28,7 +28,6 @@ type Host interface {
 }
 
 type hst struct {
-	// TODO
 	serverSession *yamux.Session // server端的session
 	outConnects map[string][]net.Conn // peerID - []Conn
 	outSessions map[string][]*yamux.Session // peerID - []Session
@@ -36,16 +35,18 @@ type hst struct {
 	methodSignMap map[string]string // 方法签名-方法名
 	peeridmethodStreamMap map[string]net.Conn // peerID+方法名 - 流
 	addrs []string // 本地内网、外网地址 + 对应端口
+	id string // ID
 }
 
 func NewHost(privateKey string, listenAddrs ...string) Host {
-	// 获取本机端口
-	ports := Tool.GetPortsFromMultiAddr(listenAddrs)
-	if len(ports) <= 0 {
-		return nil
-	}
 	// 拼装addr
 	multiAddr := Tool.GetMultiAddr(listenAddrs)
+	// 获取本节点的ID
+	peerId, err := Tool.GetPeerId()
+	if err != nil {
+		return nil
+	}
+
 	return &hst{serverSession:nil,
 		outConnects:make(map[string][]net.Conn),
 		outSessions:make(map[string][]*yamux.Session),
@@ -53,6 +54,7 @@ func NewHost(privateKey string, listenAddrs ...string) Host {
 		methodSignMap:make(map[string]string),
 		peeridmethodStreamMap:make(map[string]net.Conn),
 		addrs:multiAddr,
+		id:peerId,
 	}
 }
 
@@ -67,7 +69,7 @@ func (h *hst) ConfigCallback(host string, port int32) {
 
 func (h *hst) ID() string {
 	// TODO
-	return ""
+	return h.id
 }
 
 func (h *hst) Addrs() []string {

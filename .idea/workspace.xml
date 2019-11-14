@@ -44,29 +44,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Go Test.TestNewHost in YTHost">
-    <configuration name="TestFilterIp4Addr in YTHost/Tool" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
-      <module name="YTHost" />
-      <working_directory value="$PROJECT_DIR$/Tool" />
-      <framework value="gotest" />
-      <kind value="PACKAGE" />
-      <package value="YTHost/Tool" />
-      <directory value="$PROJECT_DIR$/" />
-      <filePath value="$PROJECT_DIR$/" />
-      <pattern value="^TestFilterIp4Addr$" />
-      <method v="2" />
-    </configuration>
-    <configuration name="TestGetIps in YTHost/Tool" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
-      <module name="YTHost" />
-      <working_directory value="$PROJECT_DIR$/Tool" />
-      <framework value="gotest" />
-      <kind value="PACKAGE" />
-      <package value="YTHost/Tool" />
-      <directory value="$PROJECT_DIR$/" />
-      <filePath value="$PROJECT_DIR$/" />
-      <pattern value="^TestGetIps$" />
-      <method v="2" />
-    </configuration>
+  <component name="RunManager" selected="Go Test.TestSendMsg in YTHost">
     <configuration name="TestGetMultiAddr in YTHost/Tool" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="YTHost" />
       <working_directory value="$PROJECT_DIR$/Tool" />
@@ -78,15 +56,15 @@
       <pattern value="^TestGetMultiAddr$" />
       <method v="2" />
     </configuration>
-    <configuration name="TestGetPortsFromMultiAddr in YTHost/Tool" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+    <configuration name="TestHst_ID in YTHost" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="YTHost" />
-      <working_directory value="$PROJECT_DIR$/Tool" />
+      <working_directory value="$PROJECT_DIR$" />
       <framework value="gotest" />
       <kind value="PACKAGE" />
-      <package value="YTHost/Tool" />
+      <package value="YTHost" />
       <directory value="$PROJECT_DIR$/" />
       <filePath value="$PROJECT_DIR$/" />
-      <pattern value="^TestGetPortsFromMultiAddr$" />
+      <pattern value="^TestHst_ID$" />
       <method v="2" />
     </configuration>
     <configuration name="TestNewHost in YTHost" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
@@ -100,13 +78,35 @@
       <pattern value="^TestNewHost$" />
       <method v="2" />
     </configuration>
+    <configuration name="TestSendMsg in YTHost" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="YTHost" />
+      <working_directory value="$PROJECT_DIR$" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="YTHost" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/" />
+      <pattern value="^TestSendMsg$" />
+      <method v="2" />
+    </configuration>
+    <configuration name="TestStartServer in YTHost" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="YTHost" />
+      <working_directory value="$PROJECT_DIR$" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="YTHost" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/" />
+      <pattern value="^TestStartServer$" />
+      <method v="2" />
+    </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Go Test.TestSendMsg in YTHost" />
+        <item itemvalue="Go Test.TestStartServer in YTHost" />
+        <item itemvalue="Go Test.TestHst_ID in YTHost" />
         <item itemvalue="Go Test.TestNewHost in YTHost" />
         <item itemvalue="Go Test.TestGetMultiAddr in YTHost/Tool" />
-        <item itemvalue="Go Test.TestGetIps in YTHost/Tool" />
-        <item itemvalue="Go Test.TestGetPortsFromMultiAddr in YTHost/Tool" />
-        <item itemvalue="Go Test.TestFilterIp4Addr in YTHost/Tool" />
       </list>
     </recent_temporary>
   </component>
@@ -130,33 +130,18 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/host_test.go</url>
-          <line>71</line>
-          <option name="timeStamp" value="14" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/host_test.go</url>
-          <line>72</line>
-          <option name="timeStamp" value="15" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/host_test.go</url>
-          <line>77</line>
-          <option name="timeStamp" value="16" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/host.go</url>
-          <line>136</line>
+          <line>138</line>
           <option name="timeStamp" value="20" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/host.go</url>
-          <line>138</line>
+          <line>140</line>
           <option name="timeStamp" value="21" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/host.go</url>
-          <line>111</line>
+          <line>113</line>
           <option name="timeStamp" value="22" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
@@ -176,12 +161,12 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/host.go</url>
-          <line>143</line>
+          <line>145</line>
           <option name="timeStamp" value="26" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/host.go</url>
-          <line>153</line>
+          <line>155</line>
           <option name="timeStamp" value="27" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">

@@ -89,3 +89,9 @@ func TestSendMsg(t *testing.T)  {
 	}
 }
 
+func TestHst_ID(t *testing.T) {
+	privKey, _ := ytcrypto.CreateKey()
+	h := host.NewHost(privKey, localMa2)
+	fmt.Println(len(h.ID()))
+}
+
