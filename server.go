@@ -6,7 +6,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	pb "github.com/yottachain/P2PHost/pb"
+	"github.com/graydream/YTHost/pb"
 )
 
 // Server implemented server API for P2PHostServer service.

@@ -1,13 +1,13 @@
 package host
 
 import (
-	"YTHost/Tool"
 	"encoding/hex"
 	"fmt"
+	"github.com/graydream/YTHost/Tool"
+	"github.com/hashicorp/yamux"
 	"github.com/multiformats/go-multiaddr"
 	"net"
 	"time"
-	"yamux"
 )
 
 type MsgHandlerFunc func(msgType string, msg []byte, publicKey string) ([]byte, error)

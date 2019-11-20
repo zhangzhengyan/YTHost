@@ -1,10 +1,10 @@
 package host_test
 
 import (
-	host "YTHost"
-	"YTHost/Tool"
 	"encoding/hex"
 	"fmt"
+	host "github.com/graydream/YTHost"
+	"github.com/graydream/YTHost/Tool"
 	ytcrypto "github.com/yottachain/YTCrypto"
 	"testing"
 )
