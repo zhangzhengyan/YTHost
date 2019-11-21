@@ -8,6 +8,7 @@ import (
 	"github.com/graydream/YTHost/DataFrameEncoder"
 	"github.com/graydream/YTHost/option"
 	"github.com/graydream/YTHost/pb"
+	"github.com/graydream/YTHost/pbMsgHandler"
 	"github.com/multiformats/go-multiaddr"
 	"io"
 	"testing"
@@ -152,5 +153,50 @@ func TestConnSendProtobufMsg(t *testing.T){
 				t.Fatal("连接应该关闭")
 			}
 		}
+	}
+}
+
+// 测试发送protobuf消息,并用protobuf handler 处理
+func TestConnProtobufHandler(t *testing.T){
+	ma,_ := multiaddr.NewMultiaddr(localMa)
+	ma2,_:=multiaddr.NewMultiaddr(localMa2)
+	hst,_:=host.NewHost(option.ListenAddr(ma))
+	t.Log(hst.Listenner().Addr())
+	go func() {
+		for {
+			conn,_:=hst.Listenner().Accept()
+			t.Log(conn.RemoteAddr())
+			pbmh:=pbMsgHandler.NewPBMsgHander(conn)
+			// 注册消息处理器
+			_=pbmh.RegisterMsgHandler(0x11, func(msgId uint16, data []byte,handler *pbMsgHandler.PBMsgHandler) {
+				var msg pb.StringMsg
+				err:=msg.XXX_Unmarshal(data)
+				if err != nil {
+					t.Fatal(err)
+				}else {
+					t.Log(msg.Value)
+				}
+			})
+		}
+	}()
+	hst2,_:=host.NewHost(option.ListenAddr(ma2))
+	ctx,cancel:=context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	conn,err:=hst2.Connect(ctx,[]multiaddr.Multiaddr{ma})
+	if err != nil {
+		t.Fatal(err.Msg)
+	} else {
+		t.Log(conn.RemoteAddr())
+		var msg pb.StringMsg
+		msg.Value = "测试protobuf消息1122"
+		pbmh:=pbMsgHandler.NewPBMsgHander(conn)
+		// 关闭连接
+		defer pbmh.Close()
+		pbmh.SendMsg(0x11,&msg)
+		msg.Value = "222测试protobuf消息"
+		pbmh.SendMsg(0x11,&msg)
+		// 此消息不应该收到
+		pbmh.SendMsg(0x12,&msg)
+		<-time.After(time.Second)
 	}
 }

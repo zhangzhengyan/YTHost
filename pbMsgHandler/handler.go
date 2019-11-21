@@ -8,13 +8,14 @@ import (
 	"github.com/graydream/YTHost/YTHostError"
 	mnet "github.com/multiformats/go-multiaddr-net"
 )
+// HandlerFunc 消息处理函数
+type HandlerFunc func(msgId uint16, data []byte, handler *PBMsgHandler)
 
-type HandlerFunc func(msgId uint16, data []byte,conn mnet.Conn)
-
+// PBMsgHanderMap 消息处理函数映射
 type PBMsgHanderMap struct {
 	handlerMap map[uint16]HandlerFunc
 }
-
+// RegisterMsgHandler 注册消息处理函数
 func (pm *PBMsgHanderMap)RegisterMsgHandler(msgID uint16,handler HandlerFunc) *YTHostError.YTError {
 	if pm.handlerMap == nil {
 		pm.handlerMap = make(map[uint16]HandlerFunc)
@@ -25,7 +26,7 @@ func (pm *PBMsgHanderMap)RegisterMsgHandler(msgID uint16,handler HandlerFunc) *Y
 	pm.handlerMap[msgID] = handler
 	return nil
 }
-
+// RemoveMsgHandler 移除消息处理函数
 func (pm *PBMsgHanderMap)RemoveMsgHandler(protocol string,msgID uint16) {
 	if pm.handlerMap == nil {
 		pm.handlerMap = make(map[uint16]HandlerFunc)
@@ -34,8 +35,9 @@ func (pm *PBMsgHanderMap)RemoveMsgHandler(protocol string,msgID uint16) {
 	delete(pm.handlerMap,msgID)
 }
 
-type PBMsgHander struct {
-	conn mnet.Conn
+// PBMsgHandler 消息处理器
+type PBMsgHandler struct {
+	mnet.Conn
 	ec *dataFrameEncoder.FrameEncoder
 	dc *dataFrameEncoder.FrameDecoder
 	// 消息处理函数表
@@ -44,14 +46,17 @@ type PBMsgHander struct {
 	//middleware []middleware.Middleware
 }
 
-func NewPBMsgHander(conn mnet.Conn) *PBMsgHander {
-	pbmh:=new(PBMsgHander)
+func NewPBMsgHander(conn mnet.Conn) *PBMsgHandler {
+	pbmh:=new(PBMsgHandler)
+	pbmh.Conn = conn
 	pbmh.ec = dataFrameEncoder.NewEncoder(conn)
 	pbmh.dc = dataFrameEncoder.NewDecoder(conn)
+	go pbmh.serve()
 	return pbmh
 }
 
-func (pbmh *PBMsgHander)SendMsg(msgId uint16,msg proto.Message) error {
+// SendMsg 发送消息
+func (pbmh *PBMsgHandler)SendMsg(msgId uint16,msg proto.Message) error {
 	buf:=bytes.NewBuffer([]byte{})
 	data,err:=proto.Marshal(msg)
 	if err != nil {
@@ -68,7 +73,7 @@ func (pbmh *PBMsgHander)SendMsg(msgId uint16,msg proto.Message) error {
 	return pbmh.ec.Encode(buf.Bytes())
 }
 
-func (pbmh *PBMsgHander)Serve() error {
+func (pbmh *PBMsgHandler)serve() error {
 	for {
 		data,err:=pbmh.dc.Decode()
 		if err !=nil {
@@ -79,7 +84,9 @@ func (pbmh *PBMsgHander)Serve() error {
 		if err:=binary.Read(buf,binary.BigEndian,&msgId);err != nil {
 			return err
 		}
-		pbmh.handlerMap[msgId](msgId,data[2:],pbmh.conn)
+		if handler,ok:=pbmh.handlerMap[msgId];ok{
+			handler(msgId,data[2:],pbmh)
+		}
 	}
 }
 
