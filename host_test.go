@@ -9,6 +9,7 @@ import (
 	"github.com/graydream/YTHost/option"
 	"github.com/graydream/YTHost/pb"
 	"github.com/multiformats/go-multiaddr"
+	"io"
 	"testing"
 	"time"
 )
@@ -73,9 +74,9 @@ func TestConnSendMsg(t *testing.T){
 				t.Fatal(err)
 			} else {
 				t.Log(conn.RemoteAddr())
-				md := DataFrameEncoder.NewDecoder(conn)
+				md := dataFrameEncoder.NewDecoder(conn)
 				for {
-					msg:=md.Decode()
+					msg,_:=md.Decode()
 					fmt.Println(string(msg))
 				}
 			}
@@ -89,7 +90,7 @@ func TestConnSendMsg(t *testing.T){
 		t.Fatal(err.Msg)
 	} else {
 		t.Log(conn.RemoteAddr())
-		me:= DataFrameEncoder.NewEncoder(conn)
+		me:= dataFrameEncoder.NewEncoder(conn)
 		me.Encode([]byte("测试数据"))
 		<-time.After(time.Second)
 		me.Encode([]byte("测试数据2"))
@@ -109,14 +110,18 @@ func TestConnSendProtobufMsg(t *testing.T){
 				t.Fatal(err)
 			} else {
 				t.Log(conn.RemoteAddr())
-				md := DataFrameEncoder.NewDecoder(conn)
+				md := dataFrameEncoder.NewDecoder(conn)
 				for {
-					msgData:=md.Decode()
-					var msg pb.StringMsg
-					if err := proto.Unmarshal(msgData,&msg);err != nil {
-						t.Fatal(err)
+					msgData,err:=md.Decode()
+					if err!=nil&&err.Error() == io.EOF.Error(){
+						t.Log("连接已关闭")
 					} else {
-						fmt.Println(msg.Value)
+						var msg pb.StringMsg
+						if err := proto.Unmarshal(msgData,&msg);err != nil {
+							t.Fatal(err)
+						} else {
+							fmt.Println(msg.Value)
+						}
 					}
 
 				}
@@ -131,7 +136,7 @@ func TestConnSendProtobufMsg(t *testing.T){
 		t.Fatal(err.Msg)
 	} else {
 		t.Log(conn.RemoteAddr())
-		me:= DataFrameEncoder.NewEncoder(conn)
+		me:= dataFrameEncoder.NewEncoder(conn)
 		var msg pb.StringMsg
 		msg.Value = "测试protobuf消息"
 		if msgData,err:=proto.Marshal(&msg);err != nil {
@@ -139,6 +144,12 @@ func TestConnSendProtobufMsg(t *testing.T){
 		} else {
 			if err := me.Encode(msgData); err != nil {
 				t.Fatal(err)
+			}
+			conn.Close()
+			if err := me.Encode(msgData); err != nil {
+				t.Log(err)
+			} else {
+				t.Fatal("连接应该关闭")
 			}
 		}
 	}

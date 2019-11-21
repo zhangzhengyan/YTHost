@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/graydream/YTHost/YTHostError"
 	"github.com/graydream/YTHost/config"
+	"github.com/graydream/YTHost/event"
 	"github.com/graydream/YTHost/option"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
@@ -24,6 +25,7 @@ type host struct {
 	cfg *config.Config
 	listener mnet.Listener
 	conns *ConnManager
+	event.EventTrigger
 }
 
 func NewHost(options... option.Option) (*host,error){
@@ -33,10 +35,9 @@ func NewHost(options... option.Option) (*host,error){
 	for _,bindOp:=range options{
 		bindOp(hst.cfg)
 	}
-
 	ls,err := mnet.Listen(hst.cfg.ListenAddr)
 	if err != nil {
-		return nil ,err
+		return nil,err
 	}
 	hst.listener = ls
 	return hst,nil

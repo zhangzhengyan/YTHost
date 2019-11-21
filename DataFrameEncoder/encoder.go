@@ -1,4 +1,4 @@
-package DataFrameEncoder
+package dataFrameEncoder
 
 import (
 	"encoding/binary"
@@ -24,16 +24,16 @@ func NewDecoder(reader io.Reader) *FrameDecoder {
 	return &FrameDecoder{reader}
 }
 
-func (mr *FrameDecoder)Decode()[]byte {
+func (mr *FrameDecoder)Decode()([]byte,error) {
 	var size int32
 	if err := binary.Read(mr.reader,binary.BigEndian, &size);err != nil {
-		return nil
+		return nil,err
 	}
 	var data = make([]byte, size)
 	if err :=binary.Read(mr.reader, binary.BigEndian, &data);err != nil {
-		return nil
+		return nil,err
 	}
-	return data
+	return data,nil
 }
 
 

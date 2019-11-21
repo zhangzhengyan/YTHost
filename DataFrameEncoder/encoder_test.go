@@ -1,8 +1,7 @@
-package DataFrameEncoder
+package dataFrameEncoder
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
 )
 
@@ -11,10 +10,14 @@ func TestMessageReader_Read(t *testing.T) {
 	ec:= FrameEncoder{buf}
 	dc:= FrameDecoder{buf}
 	ec.Encode([]byte("1111"))
-	ec.Encode([]byte("99999"))
-	ec.Encode([]byte("test"))
-
-	fmt.Println(string(dc.Decode()))
-	fmt.Println(string(dc.Decode()))
-	fmt.Println(string(dc.Decode()))
+	if data,err :=dc.Decode();err !=nil {
+		t.Fatal(err)
+	} else {
+		t.Log(string(data))
+	}
+	if _,err :=dc.Decode();err ==nil {
+		t.Fatal("连接应该已关闭")
+	} else {
+		t.Log(err)
+	}
 }

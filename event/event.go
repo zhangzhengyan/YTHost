@@ -1,7 +1,6 @@
 package event
 
 import (
-	"fmt"
 	"github.com/google/uuid"
 )
 
@@ -36,13 +35,10 @@ func (et *EventTrigger)Unsubscribe(id uuid.UUID){
 }
 
 
-func (et *EventTrigger)Emit(evt Event) error{
-	if hds,ok:=et.eventMap[evt.Name];!ok{
-		return fmt.Errorf("No subscribe the event")
-	} else {
+func (et *EventTrigger)Emit(evt Event) {
+	if hds,ok:=et.eventMap[evt.Name];ok{
 		for _,handler:=range hds{
 			go handler(evt)
 		}
-		return nil
 	}
 }
