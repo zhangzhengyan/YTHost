@@ -1,10 +1,15 @@
 package host
 
 import (
-	"github.com/gogo/protobuf/proto"
+	"context"
+	"fmt"
+	"github.com/graydream/YTHost/YTHostError"
+	"github.com/graydream/YTHost/config"
+	"github.com/graydream/YTHost/option"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/multiformats/go-multiaddr"
 	mnet "github.com/multiformats/go-multiaddr-net"
-	"google.golang.org/grpc"
-	"net"
+	"sync"
 )
 
 type Conn struct {
@@ -16,42 +21,68 @@ type Host interface {
 }
 
 type host struct {
-	cfg *Config
+	cfg *config.Config
 	listener mnet.Listener
-	server *grpc.Server
 	conns *ConnManager
 }
-type option interface {
-}
 
-func NewHost(options... option) (*host,error){
-
+func NewHost(options... option.Option) (*host,error){
 	hst := new(host)
-	hst.cfg = NewConfig()
+	hst.cfg = config.NewConfig()
+
+	for _,bindOp:=range options{
+		bindOp(hst.cfg)
+	}
+
 	ls,err := mnet.Listen(hst.cfg.ListenAddr)
 	if err != nil {
 		return nil ,err
 	}
 	hst.listener = ls
-	hst.server = grpc.NewServer()
-
-	if err:=hst.server.Serve(hst.listener.(net.Listener));err != nil {
-		return nil,err
-	}
 	return hst,nil
 }
 
-func (hst *host)RegisterMsg(msgId int,pb proto.Message){}
+func (hst *host)Listenner()mnet.Listener{
+	return hst.listener
+}
 
-func (hst *host)Serve(){
-	for {
-		if conn,err := hst.listener.Accept();err != nil {
-			panic(err)
-		} else {
-			hst.conns.Add(conn)
-		}
+// Connect 连接远程节点
+func (hst *host)Connect(ctx context.Context,mas []multiaddr.Multiaddr)(mnet.Conn,*YTHostError.YTError){
+	var connChan = make(chan mnet.Conn)
+	var AllDailFailErrorChan = make(chan struct{})
+	wg := sync.WaitGroup{}
+	wg.Add(len(mas))
+	for _,ma:=range mas{
+		go func() {
+			if conn,err := mnet.Dial(ma);err==nil{
+				connChan <-conn
+			} else {
+				fmt.Println(err)
+				wg.Done()
+			}
+		}()
+	}
+	go func() {
+		wg.Wait()
+		AllDailFailErrorChan<- struct{}{}
+	}()
+	select {
+	case conn := <-connChan:
+		return conn,nil
+	case <-AllDailFailErrorChan:
+		return nil,YTHostError.NewError(0,"All maddr dail fail")
+	case <-ctx.Done():
+		return nil,YTHostError.NewError(1,"dail timeout")
 	}
 }
 
-func (hst *host)handle(conn net.Conn){
+func (hst *host)ConnectMaString(ctx context.Context,mastring string) (mnet.Conn,*YTHostError.YTError){
+	if ma,err := multiaddr.NewMultiaddr(mastring);err != nil {
+		return nil,YTHostError.NewError(0,fmt.Sprintf("Parse maddr Error %s",mastring))
+	} else if pi,err:=peer.AddrInfoFromP2pAddr(ma);err!=nil {
+		return nil,YTHostError.NewError(1,fmt.Sprintf("Parse maddr to peerInfo Error %s",mastring))
+	} else {
+		return hst.Connect(ctx,pi.Addrs)
+	}
 }
+

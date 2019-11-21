@@ -1,11 +1,11 @@
 package host
 
 import (
-	net "github.com/multiformats/go-multiaddr-net"
+	mnet "github.com/multiformats/go-multiaddr-net"
 )
 
 type ConnManager struct {
-	Conns []net.Conn
+	Conns []mnet.Conn
 }
 
 func NewConnMngr() *ConnManager{
@@ -13,6 +13,6 @@ func NewConnMngr() *ConnManager{
 	return connMngr
 }
 
-func (cm *ConnManager)Add(conn net.Conn){
+func (cm *ConnManager)Add(conn mnet.Conn){
 	cm.Conns = append(cm.Conns,conn)
 }
