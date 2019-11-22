@@ -48,13 +48,13 @@ func TestConn(t *testing.T){
 	hst2,_:=host.NewHost(option.ListenAddr(ma2))
 	ctx,cancel:=context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	conn,err:=hst2.Connect(ctx,[]multiaddr.Multiaddr{ma})
+	conn,err:=hst2.Connect(ctx,"id111",[]multiaddr.Multiaddr{ma})
 	if err != nil {
 		t.Fatal(err.Msg)
 	} else {
 		t.Log(conn.RemoteAddr())
 	}
-	conn,err = hst2.Connect(ctx,[]multiaddr.Multiaddr{ma})
+	conn,err = hst2.Connect(ctx,"id111",[]multiaddr.Multiaddr{ma})
 	if err != nil {
 		t.Fatal(err.Msg)
 	} else {
@@ -86,7 +86,7 @@ func TestConnSendMsg(t *testing.T){
 	hst2,_:=host.NewHost(option.ListenAddr(ma2))
 	ctx,cancel:=context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	conn,err:=hst2.Connect(ctx,[]multiaddr.Multiaddr{ma})
+	conn,err:=hst2.Connect(ctx,"id111",[]multiaddr.Multiaddr{ma})
 	if err != nil {
 		t.Fatal(err.Msg)
 	} else {
@@ -132,7 +132,7 @@ func TestConnSendProtobufMsg(t *testing.T){
 	hst2,_:=host.NewHost(option.ListenAddr(ma2))
 	ctx,cancel:=context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	conn,err:=hst2.Connect(ctx,[]multiaddr.Multiaddr{ma})
+	conn,err:=hst2.Connect(ctx,"id111",[]multiaddr.Multiaddr{ma})
 	if err != nil {
 		t.Fatal(err.Msg)
 	} else {
@@ -156,47 +156,42 @@ func TestConnSendProtobufMsg(t *testing.T){
 	}
 }
 
-// 测试发送protobuf消息,并用protobuf handler 处理
-func TestConnProtobufHandler(t *testing.T){
+// 测试发送protobuf消息。注册消息处理器
+func TestConnSendProtobufMsgAndHandler(t *testing.T){
 	ma,_ := multiaddr.NewMultiaddr(localMa)
 	ma2,_:=multiaddr.NewMultiaddr(localMa2)
+
+	// 创建节点1
 	hst,_:=host.NewHost(option.ListenAddr(ma))
 	t.Log(hst.Listenner().Addr())
-	go func() {
-		for {
-			conn,_:=hst.Listenner().Accept()
-			t.Log(conn.RemoteAddr())
-			pbmh:=pbMsgHandler.NewPBMsgHander(conn)
-			// 注册消息处理器
-			_=pbmh.RegisterMsgHandler(0x11, func(msgId uint16, data []byte,handler *pbMsgHandler.PBMsgHandler) {
-				var msg pb.StringMsg
-				err:=msg.XXX_Unmarshal(data)
-				if err != nil {
-					t.Fatal(err)
-				}else {
-					t.Log(msg.Value)
-				}
-			})
-		}
-	}()
-	hst2,_:=host.NewHost(option.ListenAddr(ma2))
-	ctx,cancel:=context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	conn,err:=hst2.Connect(ctx,[]multiaddr.Multiaddr{ma})
-	if err != nil {
-		t.Fatal(err.Msg)
-	} else {
-		t.Log(conn.RemoteAddr())
+	// 注册消息处理器
+	err:=hst.RegisterMsgHandler(0x11, func(msgId uint16, data []byte, handler *pbMsgHandler.PBMsgHandler) {
 		var msg pb.StringMsg
-		msg.Value = "测试protobuf消息1122"
-		pbmh:=pbMsgHandler.NewPBMsgHander(conn)
-		// 关闭连接
-		defer pbmh.Close()
-		pbmh.SendMsg(0x11,&msg)
-		msg.Value = "222测试protobuf消息"
-		pbmh.SendMsg(0x11,&msg)
-		// 此消息不应该收到
-		pbmh.SendMsg(0x12,&msg)
-		<-time.After(time.Second)
+		err:=proto.Unmarshal(data,&msg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		fmt.Println(msg.Value)
+	})
+	// 开启服务监听消息
+	go hst.Serve(context.Background())
+	if err != nil {
+		t.Fatal(err)
 	}
+
+	// 创建节点2
+	hst2,_:=host.NewHost(option.ListenAddr(ma2))
+	_,err=hst2.Connect(context.Background(),"test",[]multiaddr.Multiaddr{ma})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var msg pb.StringMsg
+	msg.Value = "测试buf消息"
+
+	// 发送消息
+	yerr:=hst2.SendMsg("test",0x11,&msg)
+	if err != nil {
+		t.Fatal(yerr.Error())
+	}
+	<-time.After(3*time.Second)
 }

@@ -24,8 +24,7 @@ type Host interface {
 type host struct {
 	cfg *config.Config
 	listener mnet.Listener
-	conns *ConnManager
-	event.EventTrigger
+	*ConnManager
 }
 
 func NewHost(options... option.Option) (*host,error){
@@ -40,6 +39,7 @@ func NewHost(options... option.Option) (*host,error){
 		return nil,err
 	}
 	hst.listener = ls
+	hst.ConnManager = NewConnMngr()
 	return hst,nil
 }
 
@@ -47,8 +47,26 @@ func (hst *host)Listenner()mnet.Listener{
 	return hst.listener
 }
 
+func (hst *host)Serve(ctx context.Context){
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				if conn,err:=hst.listener.Accept(); err != nil {
+					hst.Emit(event.Event{"error",err})
+				} else {
+					hst.addConn("local",conn)
+				}
+			}
+		}
+	}()
+	hst.serve(ctx)
+}
+
 // Connect 连接远程节点
-func (hst *host)Connect(ctx context.Context,mas []multiaddr.Multiaddr)(mnet.Conn,*YTHostError.YTError){
+func (hst *host)Connect(ctx context.Context,pid string,mas []multiaddr.Multiaddr)(mnet.Conn,*YTHostError.YTError){
 	var connChan = make(chan mnet.Conn)
 	var AllDailFailErrorChan = make(chan struct{})
 	wg := sync.WaitGroup{}
@@ -69,6 +87,7 @@ func (hst *host)Connect(ctx context.Context,mas []multiaddr.Multiaddr)(mnet.Conn
 	}()
 	select {
 	case conn := <-connChan:
+		hst.addConn(pid,conn)
 		return conn,nil
 	case <-AllDailFailErrorChan:
 		return nil,YTHostError.NewError(0,"All maddr dail fail")
@@ -77,13 +96,13 @@ func (hst *host)Connect(ctx context.Context,mas []multiaddr.Multiaddr)(mnet.Conn
 	}
 }
 
-func (hst *host)ConnectMaString(ctx context.Context,mastring string) (mnet.Conn,*YTHostError.YTError){
+func (hst *host)ConnectMaString(ctx context.Context,pid string,mastring string) (mnet.Conn,*YTHostError.YTError){
 	if ma,err := multiaddr.NewMultiaddr(mastring);err != nil {
 		return nil,YTHostError.NewError(0,fmt.Sprintf("Parse maddr Error %s",mastring))
 	} else if pi,err:=peer.AddrInfoFromP2pAddr(ma);err!=nil {
 		return nil,YTHostError.NewError(1,fmt.Sprintf("Parse maddr to peerInfo Error %s",mastring))
 	} else {
-		return hst.Connect(ctx,pi.Addrs)
+		return hst.Connect(ctx,pid,pi.Addrs)
 	}
 }
 
