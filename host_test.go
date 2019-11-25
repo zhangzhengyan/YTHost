@@ -1,97 +1,197 @@
 package host_test
 
 import (
-	"encoding/hex"
+	"context"
 	"fmt"
+	"github.com/gogo/protobuf/proto"
 	host "github.com/graydream/YTHost"
-	"github.com/graydream/YTHost/Tool"
-	ytcrypto "github.com/yottachain/YTCrypto"
+	"github.com/graydream/YTHost/DataFrameEncoder"
+	"github.com/graydream/YTHost/option"
+	"github.com/graydream/YTHost/pb"
+	"github.com/graydream/YTHost/pbMsgHandler"
+	"github.com/multiformats/go-multiaddr"
+	"io"
 	"testing"
+	"time"
 )
 
 var localMa = "/ip4/0.0.0.0/tcp/9000"
 var localMa2 = "/ip4/0.0.0.0/tcp/9001"
 var localMa3 = "/ip4/0.0.0.0/tcp/9002"
 
-func TestMd5(t *testing.T)  {
-	test := "test"
-	fmt.Println(hex.EncodeToString(Tool.Md5(test)))
-	fmt.Println(len(Tool.Md5(test)))
-	fmt.Println(host.GetMethodSign(test))
-	fmt.Println(len(host.GetMethodSign(test)))
-}
-
-func TestAddr(t *testing.T)  {
-	privKey, _ := ytcrypto.CreateKey()
-	h := host.NewHost(privKey, localMa)
-	fmt.Println(h.Addrs())
-}
-
+// 测试创建通讯节点
 func TestNewHost(t *testing.T) {
-	privKey, _ := ytcrypto.CreateKey()
-	h := host.NewHost(privKey, localMa2)
-	fmt.Println(h.Addrs())
+	ma,_ := multiaddr.NewMultiaddr(localMa2)
+	if hst,err:=host.NewHost(option.ListenAddr(ma));err != nil {
+		t.Fatal(err)
+	} else {
+		t.Log(hst.Listenner().Addr())
+	}
 }
 
-// TestSendMessage 测试发送接受消息
-func TestStartServer(t *testing.T) {
-	fmt.Println("test start server.....")
-	// 创建host1模拟接受消息
-	privKey, _ := ytcrypto.CreateKey()
-	h1 := host.NewHost(localMa, privKey)
-	fmt.Println("new host .....")
+// 测试建立连接
+func TestConn(t *testing.T){
+	ma,_ := multiaddr.NewMultiaddr(localMa)
+	ma2,_:=multiaddr.NewMultiaddr(localMa2)
+	hst,_:=host.NewHost(option.ListenAddr(ma))
+	t.Log(hst.Listenner().Addr())
+	go func() {
+		for {
+			Conn,err:=hst.Listenner().Accept()
+			if err!=nil {
+				t.Fatal(err)
+			} else {
+				t.Log(Conn.RemoteAddr())
+			}
+		}
+	}()
+	hst2,_:=host.NewHost(option.ListenAddr(ma2))
+	ctx,cancel:=context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	conn,err:=hst2.Connect(ctx,"id111",[]multiaddr.Multiaddr{ma})
+	if err != nil {
+		t.Fatal(err.Msg)
+	} else {
+		t.Log(conn.RemoteAddr())
+	}
+	conn,err = hst2.Connect(ctx,"id111",[]multiaddr.Multiaddr{ma})
+	if err != nil {
+		t.Fatal(err.Msg)
+	} else {
+		t.Log(conn.RemoteAddr())
+	}
+}
 
-	//tcpListener := h1.NewListener("127.0.0.1", "8980")
-	tcpListener := h1.NewListener("0.0.0.0", "8980")
-	fmt.Println("new server done .....")
+// 测试发送消息
+func TestConnSendMsg(t *testing.T){
+	ma,_ := multiaddr.NewMultiaddr(localMa)
+	ma2,_:=multiaddr.NewMultiaddr(localMa2)
+	hst,_:=host.NewHost(option.ListenAddr(ma))
+	t.Log(hst.Listenner().Addr())
+	go func() {
+		for {
+			conn,err:=hst.Listenner().Accept()
+			if err!=nil {
+				t.Fatal(err)
+			} else {
+				t.Log(conn.RemoteAddr())
+				md := dataFrameEncoder.NewDecoder(conn)
+				for {
+					msg,_:=md.Decode()
+					fmt.Println(string(msg))
+				}
+			}
+		}
+	}()
+	hst2,_:=host.NewHost(option.ListenAddr(ma2))
+	ctx,cancel:=context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	conn,err:=hst2.Connect(ctx,"id111",[]multiaddr.Multiaddr{ma})
+	if err != nil {
+		t.Fatal(err.Msg)
+	} else {
+		t.Log(conn.RemoteAddr())
+		me:= dataFrameEncoder.NewEncoder(conn)
+		me.Encode([]byte("测试数据"))
+		<-time.After(time.Second)
+		me.Encode([]byte("测试数据2"))
+	}
+}
 
-	msgHandler := func(msgType string, msg []byte, publicKey string) ([]byte, error) {
-		if string(msgType) == "ping" {
-			return []byte("pong"), nil
+// 测试发送protobuf消息
+func TestConnSendProtobufMsg(t *testing.T){
+	ma,_ := multiaddr.NewMultiaddr(localMa)
+	ma2,_:=multiaddr.NewMultiaddr(localMa2)
+	hst,_:=host.NewHost(option.ListenAddr(ma))
+	t.Log(hst.Listenner().Addr())
+	go func() {
+		for {
+			conn,err:=hst.Listenner().Accept()
+			if err!=nil {
+				t.Fatal(err)
+			} else {
+				t.Log(conn.RemoteAddr())
+				md := dataFrameEncoder.NewDecoder(conn)
+				for {
+					msgData,err:=md.Decode()
+					if err!=nil&&err.Error() == io.EOF.Error(){
+						t.Log("连接已关闭")
+					} else {
+						var msg pb.StringMsg
+						if err := proto.Unmarshal(msgData,&msg);err != nil {
+							t.Fatal(err)
+						} else {
+							fmt.Println(msg.Value)
+						}
+					}
+
+				}
+			}
+		}
+	}()
+	hst2,_:=host.NewHost(option.ListenAddr(ma2))
+	ctx,cancel:=context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	conn,err:=hst2.Connect(ctx,"id111",[]multiaddr.Multiaddr{ma})
+	if err != nil {
+		t.Fatal(err.Msg)
+	} else {
+		t.Log(conn.RemoteAddr())
+		me:= dataFrameEncoder.NewEncoder(conn)
+		var msg pb.StringMsg
+		msg.Value = "测试protobuf消息"
+		if msgData,err:=proto.Marshal(&msg);err != nil {
+			t.Fatal(err)
 		} else {
-			return []byte("error"), nil
+			if err := me.Encode(msgData); err != nil {
+				t.Fatal(err)
+			}
+			conn.Close()
+			if err := me.Encode(msgData); err != nil {
+				t.Log(err)
+			} else {
+				t.Fatal("连接应该关闭")
+			}
 		}
 	}
-	h1.RegisterHandler("ping", msgHandler)
-	fmt.Println("after register .....")
-	h1.StartServer(tcpListener)
-
 }
 
-func TestSendMsg(t *testing.T)  {
-	// 创建host2模拟发送消息
-	privKey, _ := ytcrypto.CreateKey()
+// 测试发送protobuf消息。注册消息处理器
+func TestConnSendProtobufMsgAndHandler(t *testing.T){
+	ma,_ := multiaddr.NewMultiaddr(localMa)
+	ma2,_:=multiaddr.NewMultiaddr(localMa2)
 
-	h2 := host.NewHost(privKey, localMa2)
-
-	//// 连接节点1
-	addrs := make([]string, 0)
-	addrs = append(addrs, "127.0.0.1:8980")
-	//addrs = append(addrs, "172.20.10.2:8980")
-	err := h2.Connect("1", addrs)
-	if err != nil {
-		t.Fatalf("connect err :%s", err)
-	} else {
-		t.Log("connect success")
-	}
-	//// 发送ping
-	res, err := h2.SendMsg("1", "ping", []byte("ping"))
-	if err != nil {
-		t.Fatalf("sendMsg err :%s", err)
-
-	} else {
-		t.Log("sendMsg success")
-		if string(res) == "pong" {
-			t.Log("res success")
-		} else {
-			t.Fatal(string(res))
+	// 创建节点1
+	hst,_:=host.NewHost(option.ListenAddr(ma))
+	t.Log(hst.Listenner().Addr())
+	// 注册消息处理器
+	err:=hst.RegisterMsgHandler(0x11, func(msgId uint16, data []byte, handler *pbMsgHandler.PBMsgHandler) {
+		var msg pb.StringMsg
+		err:=proto.Unmarshal(data,&msg)
+		if err != nil {
+			t.Fatal(err)
 		}
+		fmt.Println(msg.Value)
+	})
+	// 开启服务监听消息
+	go hst.Serve(context.Background())
+	if err != nil {
+		t.Fatal(err)
 	}
-}
 
-func TestHst_ID(t *testing.T) {
-	privKey, _ := ytcrypto.CreateKey()
-	h := host.NewHost(privKey, localMa2)
-	fmt.Println(len(h.ID()))
-}
+	// 创建节点2
+	hst2,_:=host.NewHost(option.ListenAddr(ma2))
+	_,err=hst2.Connect(context.Background(),"test",[]multiaddr.Multiaddr{ma})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var msg pb.StringMsg
+	msg.Value = "测试buf消息"
 
+	// 发送消息
+	yerr:=hst2.SendMsg("test",0x11,&msg)
+	if err != nil {
+		t.Fatal(yerr.Error())
+	}
+	<-time.After(3*time.Second)
+}
