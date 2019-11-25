@@ -2,13 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="a662ad78-611e-40ee-9fef-c0d71a13e098" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/net/conn.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ConnMngr.go" beforeDir="false" afterPath="$PROJECT_DIR$/ConnMngr.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/host.go" beforeDir="false" afterPath="$PROJECT_DIR$/host.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/host_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/host_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pbMsgHandler/handler.go" beforeDir="false" afterPath="$PROJECT_DIR$/pbMsgHandler/handler.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -21,8 +15,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/host.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="371">
-              <caret line="64" column="17" selection-start-line="64" selection-start-column="17" selection-end-line="64" selection-end-column="17" />
+            <state relative-caret-position="176">
+              <caret line="46" selection-start-line="46" selection-end-line="46" />
               <folding>
                 <element signature="e#14#299#0" expanded="true" />
               </folding>
@@ -31,9 +25,18 @@
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
+        <entry file="file:///usr/local/go/src/runtime/panic.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="183">
+              <caret line="521" selection-start-line="521" selection-end-line="521" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/net/conn.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="161">
+            <state relative-caret-position="270">
               <caret line="18" column="1" lean-forward="true" selection-start-line="18" selection-start-column="1" selection-end-line="18" selection-end-column="1" />
               <folding>
                 <element signature="e#14#26#0" expanded="true" />
@@ -57,11 +60,38 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/host_test.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="205">
-              <caret line="158" column="25" selection-start-line="158" selection-start-column="25" selection-end-line="158" selection-end-column="25" />
+            <state relative-caret-position="176">
+              <caret line="127" column="41" selection-start-line="127" selection-start-column="41" selection-end-line="127" selection-end-column="41" />
               <folding>
                 <element signature="e#19#296#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file:///usr/local/go/src/testing/testing.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="759">
+              <caret line="829" selection-start-line="829" selection-end-line="829" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file:///usr/local/go/src/runtime/proc.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="4440">
+              <caret line="301" selection-start-line="301" selection-end-line="301" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/cmd/main.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="15">
+              <caret line="1" lean-forward="true" selection-start-line="1" selection-end-line="1" />
             </state>
           </provider>
         </entry>
@@ -86,15 +116,6 @@
               <folding>
                 <element signature="e#22#34#0" expanded="true" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/pbMsgHandler/handler_test.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="15">
-              <caret line="1" selection-start-line="1" selection-end-line="1" />
             </state>
           </provider>
         </entry>
@@ -188,7 +209,7 @@
             <path>
               <item name="YTHost" type="b2602c69:ProjectViewProjectNode" />
               <item name="YTHost" type="462c0819:PsiDirectoryNode" />
-              <item name="net" type="462c0819:PsiDirectoryNode" />
+              <item name="cmd" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -229,29 +250,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Go Test.TestConnSendProtobufMsgAndHandler in github.com/graydream/YTHost">
-    <configuration name="TestConn in github.com/graydream/YTHost" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
-      <module name="YTHost" />
-      <working_directory value="$PROJECT_DIR$" />
-      <framework value="gotest" />
-      <kind value="PACKAGE" />
-      <package value="github.com/graydream/YTHost" />
-      <directory value="$PROJECT_DIR$/" />
-      <filePath value="$PROJECT_DIR$/" />
-      <pattern value="^TestConn$" />
-      <method v="2" />
-    </configuration>
-    <configuration name="TestConnProtobufHandler in github.com/graydream/YTHost" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
-      <module name="YTHost" />
-      <working_directory value="$PROJECT_DIR$" />
-      <framework value="gotest" />
-      <kind value="PACKAGE" />
-      <package value="github.com/graydream/YTHost" />
-      <directory value="$PROJECT_DIR$/" />
-      <filePath value="$PROJECT_DIR$/" />
-      <pattern value="^TestConnProtobufHandler$" />
-      <method v="2" />
-    </configuration>
+  <component name="RunManager" selected="Go Test.go test github.com/graydream/YTHost">
     <configuration name="TestConnSendMsg in github.com/graydream/YTHost" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="YTHost" />
       <working_directory value="$PROJECT_DIR$" />
@@ -261,17 +260,6 @@
       <directory value="$PROJECT_DIR$/" />
       <filePath value="$PROJECT_DIR$/" />
       <pattern value="^TestConnSendMsg$" />
-      <method v="2" />
-    </configuration>
-    <configuration name="TestConnSendProtobufMsg in github.com/graydream/YTHost" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
-      <module name="YTHost" />
-      <working_directory value="$PROJECT_DIR$" />
-      <framework value="gotest" />
-      <kind value="PACKAGE" />
-      <package value="github.com/graydream/YTHost" />
-      <directory value="$PROJECT_DIR$/" />
-      <filePath value="$PROJECT_DIR$/" />
-      <pattern value="^TestConnSendProtobufMsg$" />
       <method v="2" />
     </configuration>
     <configuration name="TestConnSendProtobufMsgAndHandler in github.com/graydream/YTHost" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
@@ -285,46 +273,77 @@
       <pattern value="^TestConnSendProtobufMsgAndHandler$" />
       <method v="2" />
     </configuration>
+    <configuration name="TestNewHost in github.com/graydream/YTHost" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="YTHost" />
+      <working_directory value="$PROJECT_DIR$" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="github.com/graydream/YTHost" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/" />
+      <pattern value="^TestNewHost$" />
+      <method v="2" />
+    </configuration>
+    <configuration name="go test github.com/graydream/YTHost" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="YTHost" />
+      <working_directory value="$PROJECT_DIR$" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="github.com/graydream/YTHost" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/" />
+      <method v="2" />
+    </configuration>
+    <configuration name="gobench github.com/graydream/YTHost" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="YTHost" />
+      <working_directory value="$PROJECT_DIR$" />
+      <framework value="gobench" />
+      <kind value="PACKAGE" />
+      <package value="github.com/graydream/YTHost" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/" />
+      <method v="2" />
+    </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Go Test.go test github.com/graydream/YTHost" />
+        <item itemvalue="Go Test.gobench github.com/graydream/YTHost" />
         <item itemvalue="Go Test.TestConnSendProtobufMsgAndHandler in github.com/graydream/YTHost" />
-        <item itemvalue="Go Test.TestConnSendProtobufMsg in github.com/graydream/YTHost" />
+        <item itemvalue="Go Test.TestNewHost in github.com/graydream/YTHost" />
         <item itemvalue="Go Test.TestConnSendMsg in github.com/graydream/YTHost" />
-        <item itemvalue="Go Test.TestConn in github.com/graydream/YTHost" />
-        <item itemvalue="Go Test.TestConnProtobufHandler in github.com/graydream/YTHost" />
       </list>
     </recent_temporary>
   </component>
   <component name="TestHistory">
-    <history-entry file="TestConnSendProtobufMsgAndHandler_in_github_com_graydream_YTHost - 2019.11.22 at 14h 31m 43s.xml">
+    <history-entry file="TestConn_in_github_com_graydream_YTHost - 2019.11.25 at 12h 00m 33s.xml">
+      <configuration name="TestConn in github.com/graydream/YTHost" configurationId="GoTestRunConfiguration" />
+    </history-entry>
+    <history-entry file="TestConnSendProtobufMsgAndHandler_in_github_com_graydream_YTHost - 2019.11.25 at 12h 00m 58s.xml">
       <configuration name="TestConnSendProtobufMsgAndHandler in github.com/graydream/YTHost" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestConnSendProtobufMsgAndHandler_in_github_com_graydream_YTHost - 2019.11.22 at 14h 32m 01s.xml">
+    <history-entry file="TestConn_in_github_com_graydream_YTHost - 2019.11.25 at 12h 04m 38s.xml">
+      <configuration name="TestConn in github.com/graydream/YTHost" configurationId="GoTestRunConfiguration" />
+    </history-entry>
+    <history-entry file="TestConnSendMsg_in_github_com_graydream_YTHost - 2019.11.25 at 12h 04m 55s.xml">
+      <configuration name="TestConnSendMsg in github.com/graydream/YTHost" configurationId="GoTestRunConfiguration" />
+    </history-entry>
+    <history-entry file="TestConnSendProtobufMsgAndHandler_in_github_com_graydream_YTHost - 2019.11.25 at 12h 05m 18s.xml">
       <configuration name="TestConnSendProtobufMsgAndHandler in github.com/graydream/YTHost" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestConnSendProtobufMsgAndHandler_in_github_com_graydream_YTHost - 2019.11.22 at 14h 32m 25s.xml">
+    <history-entry file="TestNewHost_in_github_com_graydream_YTHost - 2019.11.25 at 12h 06m 24s.xml">
+      <configuration name="TestNewHost in github.com/graydream/YTHost" configurationId="GoTestRunConfiguration" />
+    </history-entry>
+    <history-entry file="TestConnSendProtobufMsgAndHandler_in_github_com_graydream_YTHost - 2019.11.25 at 12h 06m 57s.xml">
       <configuration name="TestConnSendProtobufMsgAndHandler in github.com/graydream/YTHost" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestConnSendProtobufMsg_in_github_com_graydream_YTHost - 2019.11.22 at 15h 10m 11s.xml">
-      <configuration name="TestConnSendProtobufMsg in github.com/graydream/YTHost" configurationId="GoTestRunConfiguration" />
+    <history-entry file="go_test_github_com_graydream_YTHost - 2019.11.25 at 12h 09m 59s.xml">
+      <configuration name="go test github.com/graydream/YTHost" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestConnSendProtobufMsgAndHandler_in_github_com_graydream_YTHost - 2019.11.22 at 15h 26m 04s.xml">
-      <configuration name="TestConnSendProtobufMsgAndHandler in github.com/graydream/YTHost" configurationId="GoTestRunConfiguration" />
+    <history-entry file="gobench_github_com_graydream_YTHost - 2019.11.25 at 12h 10m 09s.xml">
+      <configuration name="gobench github.com/graydream/YTHost" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestConnSendProtobufMsgAndHandler_in_github_com_graydream_YTHost - 2019.11.22 at 15h 26m 44s.xml">
-      <configuration name="TestConnSendProtobufMsgAndHandler in github.com/graydream/YTHost" configurationId="GoTestRunConfiguration" />
-    </history-entry>
-    <history-entry file="TestConnSendProtobufMsgAndHandler_in_github_com_graydream_YTHost - 2019.11.22 at 15h 27m 07s.xml">
-      <configuration name="TestConnSendProtobufMsgAndHandler in github.com/graydream/YTHost" configurationId="GoTestRunConfiguration" />
-    </history-entry>
-    <history-entry file="TestConnSendProtobufMsgAndHandler_in_github_com_graydream_YTHost - 2019.11.22 at 15h 28m 45s.xml">
-      <configuration name="TestConnSendProtobufMsgAndHandler in github.com/graydream/YTHost" configurationId="GoTestRunConfiguration" />
-    </history-entry>
-    <history-entry file="TestConnSendProtobufMsgAndHandler_in_github_com_graydream_YTHost - 2019.11.22 at 15h 34m 41s.xml">
-      <configuration name="TestConnSendProtobufMsgAndHandler in github.com/graydream/YTHost" configurationId="GoTestRunConfiguration" />
-    </history-entry>
-    <history-entry file="TestConnSendProtobufMsgAndHandler_in_github_com_graydream_YTHost - 2019.11.22 at 15h 35m 37s.xml">
-      <configuration name="TestConnSendProtobufMsgAndHandler in github.com/graydream/YTHost" configurationId="GoTestRunConfiguration" />
+    <history-entry file="go_test_github_com_graydream_YTHost - 2019.11.25 at 12h 10m 27s.xml">
+      <configuration name="go test github.com/graydream/YTHost" configurationId="GoTestRunConfiguration" />
     </history-entry>
   </component>
   <component name="TodoView">
@@ -343,9 +362,10 @@
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.24969475" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
+      <window_info anchor="bottom" id="Profiler" weight="0.32946634" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" sideWeight="0.4993895" visible="true" weight="0.5116009" />
+      <window_info anchor="bottom" id="Run" order="2" sideWeight="0.498779" weight="0.5116009" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.39907193" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -353,8 +373,8 @@
       <window_info anchor="bottom" id="Docker" order="7" show_stripe_button="false" />
       <window_info anchor="bottom" id="Version Control" order="8" />
       <window_info anchor="bottom" id="Database Changes" order="9" />
-      <window_info anchor="bottom" id="Terminal" order="10" sideWeight="0.4993895" weight="0.32946634" />
-      <window_info anchor="bottom" id="Event Log" order="11" sideWeight="0.50061053" side_tool="true" weight="0.32946634" />
+      <window_info active="true" anchor="bottom" id="Terminal" order="10" sideWeight="0.498779" visible="true" weight="0.32946634" />
+      <window_info anchor="bottom" id="Event Log" order="11" sideWeight="0.501221" side_tool="true" weight="0.5116009" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
@@ -431,12 +451,6 @@
           <properties />
           <option name="timeStamp" value="60" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/host.go</url>
-          <line>56</line>
-          <properties />
-          <option name="timeStamp" value="61" />
-        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
   </component>
@@ -483,9 +497,6 @@
           </folding>
         </state>
       </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/cmd/main.go">
-      <provider selected="true" editor-type-id="text-editor" />
     </entry>
     <entry file="file://$PROJECT_DIR$/Tool/MultiAddr.go">
       <provider selected="true" editor-type-id="text-editor" />
@@ -651,20 +662,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file:///usr/local/go/src/testing/testing.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="178">
-          <caret line="868" selection-start-line="868" selection-end-line="868" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file:///usr/local/go/src/runtime/panic.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="280">
-          <caret line="689" selection-start-line="689" selection-end-line="689" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///usr/local/go/src/strings/strings.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="126">
@@ -683,13 +680,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="163">
           <caret line="1446" selection-start-line="1446" selection-end-line="1446" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file:///usr/local/go/src/runtime/proc.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="163">
-          <caret line="301" selection-start-line="301" selection-end-line="301" />
         </state>
       </provider>
     </entry>
@@ -727,16 +717,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/net/conn.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="161">
-          <caret line="18" column="1" lean-forward="true" selection-start-line="18" selection-start-column="1" selection-end-line="18" selection-end-column="1" />
-          <folding>
-            <element signature="e#14#26#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/ConnMngr.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="165">
@@ -747,20 +727,58 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/net/conn.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="270">
+          <caret line="18" column="1" lean-forward="true" selection-start-line="18" selection-start-column="1" selection-end-line="18" selection-end-column="1" />
+          <folding>
+            <element signature="e#14#26#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/cmd/main.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="15">
+          <caret line="1" lean-forward="true" selection-start-line="1" selection-end-line="1" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///usr/local/go/src/runtime/proc.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="4440">
+          <caret line="301" selection-start-line="301" selection-end-line="301" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/host.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="371">
-          <caret line="64" column="17" selection-start-line="64" selection-start-column="17" selection-end-line="64" selection-end-column="17" />
+        <state relative-caret-position="176">
+          <caret line="46" selection-start-line="46" selection-end-line="46" />
           <folding>
             <element signature="e#14#299#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="file:///usr/local/go/src/runtime/panic.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="183">
+          <caret line="521" selection-start-line="521" selection-end-line="521" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///usr/local/go/src/testing/testing.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="759">
+          <caret line="829" selection-start-line="829" selection-end-line="829" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/host_test.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="205">
-          <caret line="158" column="25" selection-start-line="158" selection-start-column="25" selection-end-line="158" selection-end-column="25" />
+        <state relative-caret-position="176">
+          <caret line="127" column="41" selection-start-line="127" selection-start-column="41" selection-end-line="127" selection-end-column="41" />
           <folding>
             <element signature="e#19#296#0" expanded="true" />
           </folding>

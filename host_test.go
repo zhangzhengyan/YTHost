@@ -15,12 +15,13 @@ import (
 	"time"
 )
 
-var localMa = "/ip4/0.0.0.0/tcp/9000"
-var localMa2 = "/ip4/0.0.0.0/tcp/9001"
-var localMa3 = "/ip4/0.0.0.0/tcp/9002"
+
+
 
 // 测试创建通讯节点
 func TestNewHost(t *testing.T) {
+	var localMa2 = "/ip4/0.0.0.0/tcp/9001"
+
 	ma,_ := multiaddr.NewMultiaddr(localMa2)
 	if hst,err:=host.NewHost(option.ListenAddr(ma));err != nil {
 		t.Fatal(err)
@@ -31,6 +32,9 @@ func TestNewHost(t *testing.T) {
 
 // 测试建立连接
 func TestConn(t *testing.T){
+	var localMa = "/ip4/0.0.0.0/tcp/9010"
+	var localMa2 = "/ip4/0.0.0.0/tcp/9011"
+
 	ma,_ := multiaddr.NewMultiaddr(localMa)
 	ma2,_:=multiaddr.NewMultiaddr(localMa2)
 	hst,_:=host.NewHost(option.ListenAddr(ma))
@@ -64,6 +68,9 @@ func TestConn(t *testing.T){
 
 // 测试发送消息
 func TestConnSendMsg(t *testing.T){
+	var localMa = "/ip4/0.0.0.0/tcp/9020"
+	var localMa2 = "/ip4/0.0.0.0/tcp/9021"
+
 	ma,_ := multiaddr.NewMultiaddr(localMa)
 	ma2,_:=multiaddr.NewMultiaddr(localMa2)
 	hst,_:=host.NewHost(option.ListenAddr(ma))
@@ -100,6 +107,9 @@ func TestConnSendMsg(t *testing.T){
 
 // 测试发送protobuf消息
 func TestConnSendProtobufMsg(t *testing.T){
+	var localMa = "/ip4/0.0.0.0/tcp/9030"
+	var localMa2 = "/ip4/0.0.0.0/tcp/9031"
+
 	ma,_ := multiaddr.NewMultiaddr(localMa)
 	ma2,_:=multiaddr.NewMultiaddr(localMa2)
 	hst,_:=host.NewHost(option.ListenAddr(ma))
@@ -115,7 +125,7 @@ func TestConnSendProtobufMsg(t *testing.T){
 				for {
 					msgData,err:=md.Decode()
 					if err!=nil&&err.Error() == io.EOF.Error(){
-						t.Log("连接已关闭")
+						//t.Log("连接已关闭",err)
 					} else {
 						var msg pb.StringMsg
 						if err := proto.Unmarshal(msgData,&msg);err != nil {
@@ -158,6 +168,9 @@ func TestConnSendProtobufMsg(t *testing.T){
 
 // 测试发送protobuf消息。注册消息处理器
 func TestConnSendProtobufMsgAndHandler(t *testing.T){
+	var localMa = "/ip4/0.0.0.0/tcp/9040"
+	var localMa2 = "/ip4/0.0.0.0/tcp/9041"
+
 	ma,_ := multiaddr.NewMultiaddr(localMa)
 	ma2,_:=multiaddr.NewMultiaddr(localMa2)
 
