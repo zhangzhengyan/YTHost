@@ -17,24 +17,25 @@ import (
 // \n\n 是终止标志
 type YTP struct {
 	io.ReadWriter
-	LocalID peer.ID
-	LocaAddrs []multiaddr.Multiaddr
+	LocalID        peer.ID
+	LocaAddrs      []multiaddr.Multiaddr
 	RemoteIsYTHost bool
-	RemoteID peer.ID
-	RemoteAddrs []multiaddr.Multiaddr
-	Finish bool
+	RemoteID       peer.ID
+	RemoteAddrs    []multiaddr.Multiaddr
+	Finish         bool
 }
 
-func (ytp *YTP)Handshake(ctx context.Context)error{
-	sc:=bufio.NewScanner(ytp)
+func (ytp *YTP) Handshake(ctx context.Context) error {
+	sc := bufio.NewScanner(ytp)
 
-	if err := ytp.SendPeerInfo(ctx);err != nil {
+	if err := ytp.SendPeerInfo(ctx); err != nil {
 		return nil
 	}
 
 	for sc.Scan() {
 		select {
-		case <-ctx.Done():break
+		case <-ctx.Done():
+			break
 		default:
 			switch sc.Text() {
 			//case "Is YTHost?":
@@ -52,9 +53,9 @@ func (ytp *YTP)Handshake(ctx context.Context)error{
 			default:
 				line := sc.Text()
 				var id string
-				if n,err:=fmt.Sscanf(line,"ID:%s\n",&id);err == nil&&n>0{
+				if n, err := fmt.Sscanf(line, "ID:%s\n", &id); err == nil && n > 0 {
 					fmt.Println(id)
-					if pid,err := peer.IDB58Decode(id);err != nil {
+					if pid, err := peer.IDB58Decode(id); err != nil {
 
 						return err
 					} else {
@@ -62,10 +63,10 @@ func (ytp *YTP)Handshake(ctx context.Context)error{
 					}
 				}
 				var addr string
-				if n,err:=fmt.Sscanf(line,"Addr:%s\n",&addr);err == nil&&n>0{
+				if n, err := fmt.Sscanf(line, "Addr:%s\n", &addr); err == nil && n > 0 {
 					fmt.Println(addr)
-					if ma,err:=multiaddr.NewMultiaddr(addr);err==nil{
-						ytp.RemoteAddrs = append(ytp.RemoteAddrs,ma)
+					if ma, err := multiaddr.NewMultiaddr(addr); err == nil {
+						ytp.RemoteAddrs = append(ytp.RemoteAddrs, ma)
 					}
 				}
 			}
@@ -74,21 +75,22 @@ func (ytp *YTP)Handshake(ctx context.Context)error{
 	return nil
 }
 
-func (ytp *YTP)SendPeerInfo(ctx context.Context)error{
+func (ytp *YTP) SendPeerInfo(ctx context.Context) error {
 	select {
-	case <-ctx.Done(): return fmt.Errorf("ctx time out")
+	case <-ctx.Done():
+		return fmt.Errorf("ctx time out")
 	default:
-		w:=bufio.NewWriter(ytp)
-		if _,err :=w.WriteString(fmt.Sprintf("ID:%s\n",ytp.LocalID.Pretty()));err != nil {
+		w := bufio.NewWriter(ytp)
+		if _, err := w.WriteString(fmt.Sprintf("ID:%s\n", ytp.LocalID.Pretty())); err != nil {
 			return err
 		}
-		for _,addr :=range ytp.LocaAddrs{
-			if _,err :=w.WriteString(fmt.Sprintf("Addr:%s\n",addr.String()));err != nil {
+		for _, addr := range ytp.LocaAddrs {
+			if _, err := w.WriteString(fmt.Sprintf("Addr:%s\n", addr.String())); err != nil {
 				return err
 			}
 		}
 		// 结束
-		if _,err :=w.WriteString(fmt.Sprintf("\n\n"));err != nil {
+		if _, err := w.WriteString(fmt.Sprintf("\n\n")); err != nil {
 			return err
 		}
 	}

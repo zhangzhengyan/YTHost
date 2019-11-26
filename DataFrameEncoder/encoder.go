@@ -24,25 +24,24 @@ func NewDecoder(reader io.Reader) *FrameDecoder {
 	return &FrameDecoder{reader}
 }
 
-func (mr *FrameDecoder)Decode()([]byte,error) {
+func (mr *FrameDecoder) Decode() ([]byte, error) {
 	var size int32
-	if err := binary.Read(mr.reader,binary.BigEndian, &size);err != nil {
-		return nil,err
+	if err := binary.Read(mr.reader, binary.BigEndian, &size); err != nil {
+		return nil, err
 	}
 	var data = make([]byte, size)
-	if err :=binary.Read(mr.reader, binary.BigEndian, &data);err != nil {
-		return nil,err
+	if err := binary.Read(mr.reader, binary.BigEndian, &data); err != nil {
+		return nil, err
 	}
-	return data,nil
+	return data, nil
 }
 
-
-func (mw *FrameEncoder)Encode(data []byte)(error) {
+func (mw *FrameEncoder) Encode(data []byte) error {
 	var size int32 = int32(len(data))
-	if err:=binary.Write(mw.writer,binary.BigEndian,size);err != nil {
+	if err := binary.Write(mw.writer, binary.BigEndian, size); err != nil {
 		return err
 	}
-	if err:=binary.Write(mw.writer,binary.BigEndian,data);err != nil {
+	if err := binary.Write(mw.writer, binary.BigEndian, data); err != nil {
 		return err
 	}
 	return nil

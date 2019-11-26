@@ -17,19 +17,19 @@ type ytconn struct {
 	remotePeer peer.AddrInfo
 }
 
-func (yc *ytconn)RemotePeer()peer.AddrInfo{
+func (yc *ytconn) RemotePeer() peer.AddrInfo {
 	return yc.remotePeer
 }
 
-func WarpConn(conn manet.Conn,pi peer.AddrInfo)(Conn,error){
+func WarpConn(conn manet.Conn, pi peer.AddrInfo) (Conn, error) {
 
 	ytp := YTP{
-		ReadWriter:conn,
-		LocalID:pi.ID,
-		LocaAddrs:pi.Addrs,
+		ReadWriter: conn,
+		LocalID:    pi.ID,
+		LocaAddrs:  pi.Addrs,
 	}
 
-	ctx,cancel := context.WithTimeout(context.Background(),3 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	if err := ytp.Handshake(ctx); err != nil {
