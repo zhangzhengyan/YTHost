@@ -41,11 +41,11 @@ func TestConn(t *testing.T){
 	t.Log(hst.Listenner().Addr())
 	go func() {
 		for {
-			Conn,err:=hst.Listenner().Accept()
+			conn,err:=hst.Listenner().Accept()
 			if err!=nil {
 				t.Fatal(err)
-			} else {
-				t.Log(Conn.RemoteAddr())
+			} else if conn.RemoteAddr() != nil {
+				t.Log(conn.RemoteAddr())
 			}
 		}
 	}()
@@ -55,13 +55,13 @@ func TestConn(t *testing.T){
 	conn,err:=hst2.Connect(ctx,"id111",[]multiaddr.Multiaddr{ma})
 	if err != nil {
 		t.Fatal(err.Msg)
-	} else {
+	} else if conn.RemoteAddr() != nil {
 		t.Log(conn.RemoteAddr())
 	}
 	conn,err = hst2.Connect(ctx,"id111",[]multiaddr.Multiaddr{ma})
 	if err != nil {
 		t.Fatal(err.Msg)
-	} else {
+	} else if conn.RemoteAddr() != nil {
 		t.Log(conn.RemoteAddr())
 	}
 }
