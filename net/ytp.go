@@ -3,6 +3,7 @@ package net
 import (
 	"bufio"
 	"context"
+	"encoding/gob"
 	"fmt"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
@@ -14,7 +15,7 @@ import (
 // ID：表示peerID
 // Addr: 表示maddr地址如果有多个地址则用多行表示
 // Pubkey: 表示加密公钥，有则进行加密传输，无则不进行加密，加密传输使用对称加密，用公钥加密加密私钥后传输
-// \n\n 是终止标志
+// |end| 是终止标志
 type YTP struct {
 	io.ReadWriter
 	LocalID        peer.ID
@@ -26,42 +27,35 @@ type YTP struct {
 }
 
 func (ytp *YTP) Handshake(ctx context.Context) error {
-	sc := bufio.NewScanner(ytp)
+	dc := gob.NewDecoder(ytp)
+	done := make(chan struct{})
+	errChan := make(chan error)
 
-	if err := ytp.SendPeerInfo(ctx); err != nil {
-		return nil
-	}
-
-	for sc.Scan() {
-		select {
-		case <-ctx.Done():
-			break
-		default:
-			switch sc.Text() {
-			//case "Is YTHost?":
-			//	if _,err:=w.WriteString(fmt.Sprintln("YTHost: 0.0.1"));err!=nil{
-			//		return err
-			//	}
-			//case "YTHost: 0.0.1":
-			//	ytp.RemoteIsYTHost = true
-			//	if err:=ytp.sendPeerInfo(ctx);err!=nil {
-			//		return err
-			//	}
-			case "\n\n":
+	go func() {
+		for sc.Scan() {
+			switch txt := sc.Text(); txt {
+			case "Is YTHost?":
+				if err := ytp.SendPeerInfo(ctx); err != nil {
+					errChan <- err
+					break
+				}
+			case "|end|":
 				ytp.Finish = true
 				break
 			default:
-				line := sc.Text()
+				line := txt
+
 				var id string
 				if n, err := fmt.Sscanf(line, "ID:%s\n", &id); err == nil && n > 0 {
 					fmt.Println(id)
 					if pid, err := peer.IDB58Decode(id); err != nil {
-
-						return err
+						errChan <- err
+						break
 					} else {
 						ytp.RemoteID = pid
 					}
 				}
+
 				var addr string
 				if n, err := fmt.Sscanf(line, "Addr:%s\n", &addr); err == nil && n > 0 {
 					fmt.Println(addr)
@@ -71,9 +65,21 @@ func (ytp *YTP) Handshake(ctx context.Context) error {
 				}
 			}
 		}
+		done <- struct{}{}
+	}()
+	select {
+	case <-ctx.Done():
+		return nil
+	case <-done:
+		return nil
+	case err := <-errChan:
+		return err
 	}
 	return nil
 }
+
+//func (ytp *YTP) confirmYThost(ctx context.Context) error {
+//}
 
 func (ytp *YTP) SendPeerInfo(ctx context.Context) error {
 	select {
@@ -90,7 +96,7 @@ func (ytp *YTP) SendPeerInfo(ctx context.Context) error {
 			}
 		}
 		// 结束
-		if _, err := w.WriteString(fmt.Sprintf("\n\n")); err != nil {
+		if _, err := w.WriteString(fmt.Sprintf("|end|")); err != nil {
 			return err
 		}
 	}

@@ -103,21 +103,28 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 	var AllDailFailErrorChan = make(chan struct{})
 	wg := sync.WaitGroup{}
 	wg.Add(len(mas))
-	for _, ma := range mas {
-		go func() {
-			if conn, err := mnet.Dial(ma); err == nil {
-				connChan <- conn
-			} else {
-				fmt.Println(err)
-				wg.Done()
-			}
-		}()
-	}
+
+	go func() {
+		for _, ma := range mas {
+			go func() {
+				if conn, err := mnet.Dial(ma); err == nil {
+					connChan <- conn
+				} else {
+					fmt.Println(err)
+					wg.Done()
+				}
+			}()
+		}
+	}()
+
 	go func() {
 		wg.Wait()
 		AllDailFailErrorChan <- struct{}{}
 	}()
+
 	select {
+	case <-ctx.Done():
+		return nil, YTHostError.NewError(1, "dail timeout")
 	case conn := <-connChan:
 		maddrs, _ := hst.Addrs()
 		pi := peer.AddrInfo{ID: hst.cfg.ID, Addrs: maddrs}
@@ -127,8 +134,6 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 		return conn, nil
 	case <-AllDailFailErrorChan:
 		return nil, YTHostError.NewError(0, "All maddr dail fail")
-	case <-ctx.Done():
-		return nil, YTHostError.NewError(1, "dail timeout")
 	}
 }
 

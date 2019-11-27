@@ -29,6 +29,8 @@ func (yc *ytconn) LocalPeer() peer.AddrInfo {
 
 // WarpConn 包装连接，交换peerinfo信息
 func WarpConn(conn manet.Conn, pi peer.AddrInfo) (Conn, error) {
+	done := make(chan struct{})
+	errChan := make(chan error)
 
 	ytp := YTP{
 		ReadWriter: conn,
@@ -38,11 +40,17 @@ func WarpConn(conn manet.Conn, pi peer.AddrInfo) (Conn, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-
-	// 执行握手 交换peerInfo
-	if err := ytp.Handshake(ctx); err != nil {
+	if err := ytp.SendPeerInfo(ctx); err != nil {
 		return nil, err
 	}
+	go func() {
+		// 执行握手 交换peerInfo
+		if err := ytp.Handshake(ctx); err != nil {
+			errChan <- err
+		} else {
+			done <- struct{}{}
+		}
+	}()
 
 	yc := new(ytconn)
 	yc.Conn = conn
@@ -52,5 +60,10 @@ func WarpConn(conn manet.Conn, pi peer.AddrInfo) (Conn, error) {
 	// 解除conn和ytp协议的绑定
 	ytp.ReadWriter = nil
 
-	return nil, nil
+	select {
+	case <-done:
+		return yc, nil
+	case err := <-errChan:
+		return nil, err
+	}
 }
