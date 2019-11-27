@@ -1,7 +1,9 @@
 package config
 
 import (
+	"crypto/rand"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	ic "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -19,5 +21,8 @@ func NewConfig() *Config {
 func newConfig(cfg *Config) *Config {
 	maddr, _ := ma.NewMultiaddr("/ip4/0.0.0.0/tcp/9001")
 	cfg.ListenAddr = maddr
+	pi, _, _ := ic.GenerateSecp256k1Key(rand.Reader)
+	id, _ := peer.IDFromPrivateKey(pi)
+	cfg.ID = id
 	return cfg
 }

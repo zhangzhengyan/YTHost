@@ -17,19 +17,24 @@ import (
 
 // 测试创建通讯节点
 func TestNewHost(t *testing.T) {
-	var localMa2 = "/ip4/0.0.0.0/tcp/9001"
+	var localMa2 = "/ip4/0.0.0.0/tcp/9003"
 
 	ma, _ := multiaddr.NewMultiaddr(localMa2)
 	if hst, err := host.NewHost(option.ListenAddr(ma)); err != nil {
 		t.Fatal(err)
 	} else {
-		t.Log(hst.Listenner().Addr())
+		maddrs, _ := hst.Addrs()
+		for _, ma := range maddrs {
+			t.Log(ma)
+		}
+		t.Log(hst.Config().ID)
 	}
+
 }
 
 // 测试建立连接
 func TestConn(t *testing.T) {
-	var localMa = "/ip4/0.0.0.0/tcp/9010"
+	var localMa = "/ip6/::1/tcp/9010"
 	var localMa2 = "/ip4/0.0.0.0/tcp/9011"
 
 	ma, _ := multiaddr.NewMultiaddr(localMa)
@@ -46,6 +51,7 @@ func TestConn(t *testing.T) {
 			}
 		}
 	}()
+
 	hst2, _ := host.NewHost(option.ListenAddr(ma2))
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -70,6 +76,7 @@ func TestConnSendMsg(t *testing.T) {
 
 	ma, _ := multiaddr.NewMultiaddr(localMa)
 	ma2, _ := multiaddr.NewMultiaddr(localMa2)
+
 	hst, _ := host.NewHost(option.ListenAddr(ma))
 	t.Log(hst.Listenner().Addr())
 	go func() {
@@ -165,7 +172,7 @@ func TestConnSendProtobufMsg(t *testing.T) {
 
 // 测试发送protobuf消息。注册消息处理器
 func TestConnSendProtobufMsgAndHandler(t *testing.T) {
-	var localMa = "/ip4/0.0.0.0/tcp/9040"
+	var localMa = "/ip6/::1/tcp/9040"
 	var localMa2 = "/ip4/0.0.0.0/tcp/9041"
 
 	ma, _ := multiaddr.NewMultiaddr(localMa)

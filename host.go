@@ -13,12 +13,9 @@ import (
 	"sync"
 )
 
-type Conn struct {
-}
-
-type Host interface {
-	Connect() *Conn
-}
+//type Host interface {
+//	Connect() net.Conn
+//}
 
 type host struct {
 	cfg      *config.Config
@@ -33,10 +30,12 @@ func NewHost(options ...option.Option) (*host, error) {
 	for _, bindOp := range options {
 		bindOp(hst.cfg)
 	}
+
 	ls, err := mnet.Listen(hst.cfg.ListenAddr)
 	if err != nil {
 		return nil, err
 	}
+
 	hst.listener = ls
 	hst.ConnManager = NewConnMngr()
 	return hst, nil
@@ -44,6 +43,38 @@ func NewHost(options ...option.Option) (*host, error) {
 
 func (hst *host) Listenner() mnet.Listener {
 	return hst.listener
+}
+
+func (hst *host) Config() *config.Config {
+	return hst.cfg
+}
+
+func (hst *host) Addrs() ([]multiaddr.Multiaddr, error) {
+
+	port, err := hst.listener.Multiaddr().ValueForProtocol(multiaddr.P_TCP)
+	if err != nil {
+		return nil, err
+	}
+
+	tcpMa, err := multiaddr.NewMultiaddr(fmt.Sprintf("/tcp/%s", port))
+	if err != nil {
+		return nil, err
+	}
+
+	var res []multiaddr.Multiaddr
+	maddrs, err := mnet.InterfaceMultiaddrs()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, ma := range maddrs {
+		newMa := ma.Encapsulate(tcpMa)
+		if mnet.IsIPLoopback(newMa) {
+			continue
+		}
+		res = append(res, newMa)
+	}
+	return res, nil
 }
 
 func (hst *host) Serve(ctx context.Context) {
@@ -56,7 +87,9 @@ func (hst *host) Serve(ctx context.Context) {
 				if conn, err := hst.listener.Accept(); err != nil {
 					hst.Emit(event.Event{"error", err})
 				} else {
-					hst.addConn("local", conn)
+					maddrs, _ := hst.Addrs()
+					pi := peer.AddrInfo{ID: hst.cfg.ID, Addrs: maddrs}
+					hst.addConn(pi, conn)
 				}
 			}
 		}
@@ -65,7 +98,7 @@ func (hst *host) Serve(ctx context.Context) {
 }
 
 // Connect 连接远程节点
-func (hst *host) Connect(ctx context.Context, pid string, mas []multiaddr.Multiaddr) (mnet.Conn, *YTHostError.YTError) {
+func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (mnet.Conn, *YTHostError.YTError) {
 	var connChan = make(chan mnet.Conn)
 	var AllDailFailErrorChan = make(chan struct{})
 	wg := sync.WaitGroup{}
@@ -86,7 +119,11 @@ func (hst *host) Connect(ctx context.Context, pid string, mas []multiaddr.Multia
 	}()
 	select {
 	case conn := <-connChan:
-		hst.addConn(pid, conn)
+		maddrs, _ := hst.Addrs()
+		pi := peer.AddrInfo{ID: hst.cfg.ID, Addrs: maddrs}
+		if err := hst.addConn(pi, conn); err != nil {
+			return nil, YTHostError.NewError(2, "add conn fail")
+		}
 		return conn, nil
 	case <-AllDailFailErrorChan:
 		return nil, YTHostError.NewError(0, "All maddr dail fail")
@@ -95,7 +132,7 @@ func (hst *host) Connect(ctx context.Context, pid string, mas []multiaddr.Multia
 	}
 }
 
-func (hst *host) ConnectMaString(ctx context.Context, pid string, mastring string) (mnet.Conn, *YTHostError.YTError) {
+func (hst *host) ConnectMaString(ctx context.Context, pid peer.ID, mastring string) (mnet.Conn, *YTHostError.YTError) {
 	if ma, err := multiaddr.NewMultiaddr(mastring); err != nil {
 		return nil, YTHostError.NewError(0, fmt.Sprintf("Parse maddr Error %s", mastring))
 	} else if pi, err := peer.AddrInfoFromP2pAddr(ma); err != nil {

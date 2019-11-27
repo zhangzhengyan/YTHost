@@ -10,17 +10,24 @@ import (
 type Conn interface {
 	manet.Conn
 	RemotePeer() peer.AddrInfo
+	LocalPeer() peer.AddrInfo
 }
 
 type ytconn struct {
 	manet.Conn
 	remotePeer peer.AddrInfo
+	localPeer  peer.AddrInfo
 }
 
 func (yc *ytconn) RemotePeer() peer.AddrInfo {
 	return yc.remotePeer
 }
 
+func (yc *ytconn) LocalPeer() peer.AddrInfo {
+	return yc.localPeer
+}
+
+// WarpConn 包装连接，交换peerinfo信息
 func WarpConn(conn manet.Conn, pi peer.AddrInfo) (Conn, error) {
 
 	ytp := YTP{
@@ -32,16 +39,18 @@ func WarpConn(conn manet.Conn, pi peer.AddrInfo) (Conn, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
+	// 执行握手 交换peerInfo
 	if err := ytp.Handshake(ctx); err != nil {
 		return nil, err
 	}
 
+	yc := new(ytconn)
+	yc.Conn = conn
+	yc.localPeer = peer.AddrInfo{ytp.LocalID, ytp.LocaAddrs}
+	yc.remotePeer = peer.AddrInfo{ytp.RemoteID, ytp.RemoteAddrs}
+
+	// 解除conn和ytp协议的绑定
+	ytp.ReadWriter = nil
+
 	return nil, nil
 }
-
-//func WarpConn(conn manet.Conn) Conn{
-//	yc := ytconn{
-//		conn,
-//	}
-//	return yc
-//}
