@@ -1,7 +1,6 @@
 package net
 
 import (
-	"bufio"
 	"context"
 	"encoding/gob"
 	"fmt"
@@ -27,55 +26,19 @@ type YTP struct {
 }
 
 func (ytp *YTP) Handshake(ctx context.Context) error {
-	dc := gob.NewDecoder(ytp)
-	done := make(chan struct{})
-	errChan := make(chan error)
-
-	go func() {
-		for sc.Scan() {
-			switch txt := sc.Text(); txt {
-			case "Is YTHost?":
-				if err := ytp.SendPeerInfo(ctx); err != nil {
-					errChan <- err
-					break
-				}
-			case "|end|":
-				ytp.Finish = true
-				break
-			default:
-				line := txt
-
-				var id string
-				if n, err := fmt.Sscanf(line, "ID:%s\n", &id); err == nil && n > 0 {
-					fmt.Println(id)
-					if pid, err := peer.IDB58Decode(id); err != nil {
-						errChan <- err
-						break
-					} else {
-						ytp.RemoteID = pid
-					}
-				}
-
-				var addr string
-				if n, err := fmt.Sscanf(line, "Addr:%s\n", &addr); err == nil && n > 0 {
-					fmt.Println(addr)
-					if ma, err := multiaddr.NewMultiaddr(addr); err == nil {
-						ytp.RemoteAddrs = append(ytp.RemoteAddrs, ma)
-					}
-				}
-			}
-		}
-		done <- struct{}{}
-	}()
 	select {
 	case <-ctx.Done():
+		return fmt.Errorf("ctx time out")
+	default:
+		dc := gob.NewDecoder(ytp)
+		var pi peer.AddrInfo
+		if err := dc.Decode(&pi); err != nil {
+			return err
+		}
+		ytp.RemoteID = pi.ID
+		ytp.RemoteAddrs = pi.Addrs
 		return nil
-	case <-done:
-		return nil
-	case err := <-errChan:
-		return err
 	}
-	return nil
 }
 
 //func (ytp *YTP) confirmYThost(ctx context.Context) error {
@@ -86,19 +49,15 @@ func (ytp *YTP) SendPeerInfo(ctx context.Context) error {
 	case <-ctx.Done():
 		return fmt.Errorf("ctx time out")
 	default:
-		w := bufio.NewWriter(ytp)
-		if _, err := w.WriteString(fmt.Sprintf("ID:%s\n", ytp.LocalID.Pretty())); err != nil {
+		ec := gob.NewEncoder(ytp.ReadWriter)
+
+		var pi peer.AddrInfo
+		pi.ID = ytp.LocalID
+		pi.Addrs = ytp.LocaAddrs
+
+		if err := ec.Encode(pi); err != nil {
 			return err
 		}
-		for _, addr := range ytp.LocaAddrs {
-			if _, err := w.WriteString(fmt.Sprintf("Addr:%s\n", addr.String())); err != nil {
-				return err
-			}
-		}
-		// 结束
-		if _, err := w.WriteString(fmt.Sprintf("|end|")); err != nil {
-			return err
-		}
+		return nil
 	}
-	return nil
 }

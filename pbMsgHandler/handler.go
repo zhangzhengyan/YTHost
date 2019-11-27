@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/graydream/YTHost/DataFrameEncoder"
-	"github.com/graydream/YTHost/YTHostError"
 	"github.com/graydream/YTHost/net"
 	mnet "github.com/multiformats/go-multiaddr-net"
 )
@@ -25,12 +24,12 @@ type PBMsgHanderMap struct {
 }
 
 // RegisterMsgHandler 注册消息处理函数
-func (pm *PBMsgHanderMap) RegisterMsgHandler(msgID uint16, handler HandlerFunc) *YTHostError.YTError {
+func (pm *PBMsgHanderMap) RegisterMsgHandler(msgID uint16, handler HandlerFunc) error {
 	if pm.handlerMap == nil {
 		pm.handlerMap = make(map[uint16]HandlerFunc)
 	}
 	if _, ok := pm.handlerMap[msgID]; ok {
-		return YTHostError.NewError(0, "handler already exist")
+		return fmt.Errorf("handler already exist")
 	}
 	pm.handlerMap[msgID] = handler
 	return nil

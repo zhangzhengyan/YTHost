@@ -25,10 +25,11 @@ func NewConnMngr() *ConnManager {
 }
 
 func (cm *ConnManager) addConn(pi peer.AddrInfo, conn mnet.Conn) error {
-	nc, err := net.WarpConn(conn, pi)
+	nc, err := net.WarpConn(conn, &pi)
 	if err != nil {
 		return err
 	}
+	time.Sleep(time.Second)
 	cm.conns[nc.RemotePeer().ID] = pbMsgHandler.NewPBMsgHander(nc)
 	return nil
 }

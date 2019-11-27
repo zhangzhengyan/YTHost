@@ -21,7 +21,6 @@ func TestHandshake(t *testing.T) {
 			t.Log(ytp.RemoteID, ytp.RemoteAddrs)
 		}
 	}()
-	buf.WriteString("YTHost: 0.0.1\nID:16Uiu2HAkuTUCLMEvN4UeCSsYLPTbdcWLoyMtjPhY9DaQ6CdCUwoU\nAddr:/ip4/127.0.0.1/tcp/9001\n|end|")
 	<-time.After(time.Second)
 }
 
@@ -37,4 +36,14 @@ func TestNetAddress(t *testing.T) {
 	m2, _ := multiaddr.NewMultiaddr("/tcp/9001")
 	m1.Encapsulate(m2)
 	t.Log()
+}
+
+func TestNetConn(t *testing.T) {
+	//m1, _ := multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/9001")
+	//m2, _ := multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/9002")
+	//
+	//if ls, err := manet.Listen(m1); err != nil {
+	//	t.Fatal(err)
+	//}
+
 }

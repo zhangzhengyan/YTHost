@@ -3,7 +3,6 @@ package host
 import (
 	"context"
 	"fmt"
-	"github.com/graydream/YTHost/YTHostError"
 	"github.com/graydream/YTHost/config"
 	"github.com/graydream/YTHost/event"
 	"github.com/graydream/YTHost/option"
@@ -98,7 +97,7 @@ func (hst *host) Serve(ctx context.Context) {
 }
 
 // Connect 连接远程节点
-func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (mnet.Conn, *YTHostError.YTError) {
+func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (mnet.Conn, error) {
 	var connChan = make(chan mnet.Conn)
 	var AllDailFailErrorChan = make(chan struct{})
 	wg := sync.WaitGroup{}
@@ -106,14 +105,14 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 
 	go func() {
 		for _, ma := range mas {
-			go func() {
+			go func(ma multiaddr.Multiaddr) {
 				if conn, err := mnet.Dial(ma); err == nil {
 					connChan <- conn
 				} else {
 					fmt.Println(err)
 					wg.Done()
 				}
-			}()
+			}(ma)
 		}
 	}()
 
@@ -124,24 +123,24 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 
 	select {
 	case <-ctx.Done():
-		return nil, YTHostError.NewError(1, "dail timeout")
+		return nil, fmt.Errorf("dail timeout")
 	case conn := <-connChan:
 		maddrs, _ := hst.Addrs()
 		pi := peer.AddrInfo{ID: hst.cfg.ID, Addrs: maddrs}
 		if err := hst.addConn(pi, conn); err != nil {
-			return nil, YTHostError.NewError(2, "add conn fail")
+			return nil, fmt.Errorf("add conn fail")
 		}
 		return conn, nil
 	case <-AllDailFailErrorChan:
-		return nil, YTHostError.NewError(0, "All maddr dail fail")
+		return nil, fmt.Errorf("All maddr dail fail")
 	}
 }
 
-func (hst *host) ConnectMaString(ctx context.Context, pid peer.ID, mastring string) (mnet.Conn, *YTHostError.YTError) {
+func (hst *host) ConnectMaString(ctx context.Context, pid peer.ID, mastring string) (mnet.Conn, error) {
 	if ma, err := multiaddr.NewMultiaddr(mastring); err != nil {
-		return nil, YTHostError.NewError(0, fmt.Sprintf("Parse maddr Error %s", mastring))
+		return nil, fmt.Errorf(fmt.Sprintf("Parse maddr Error %s", mastring))
 	} else if pi, err := peer.AddrInfoFromP2pAddr(ma); err != nil {
-		return nil, YTHostError.NewError(1, fmt.Sprintf("Parse maddr to peerInfo Error %s", mastring))
+		return nil, fmt.Errorf(fmt.Sprintf("Parse maddr to peerInfo Error %s", mastring))
 	} else {
 		return hst.Connect(ctx, pid, pi.Addrs)
 	}
