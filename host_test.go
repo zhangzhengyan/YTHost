@@ -6,7 +6,7 @@ import (
 	host "github.com/graydream/YTHost"
 	"github.com/graydream/YTHost/option"
 	"github.com/multiformats/go-multiaddr"
-	manet "github.com/multiformats/go-multiaddr-net"
+	"math/rand"
 	"testing"
 	"time"
 )
@@ -19,7 +19,7 @@ func TestNewHost(t *testing.T) {
 	if hst, err := host.NewHost(option.ListenAddr(ma)); err != nil {
 		t.Fatal(err)
 	} else {
-		maddrs, _ := hst.Addrs()
+		maddrs := hst.Addrs()
 		for _, ma := range maddrs {
 			t.Log(ma)
 		}
@@ -40,70 +40,72 @@ func (rs *RpcService) Test(req string, res *Reply) error {
 	return nil
 }
 
-func TestMnet(t *testing.T) {
-	var localMa = "/ip4/0.0.0.0/tcp/9010"
-	//var localMa2 = "/ip4/0.0.0.0/tcp/9012"
-
-	ma, _ := multiaddr.NewMultiaddr(localMa)
-	//ma2, _ := multiaddr.NewMultiaddr(localMa2)
-
-	ls, err := manet.Listen(ma)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	go func() {
-		for {
-			conn, err := ls.Accept()
-			fmt.Println(conn.RemoteAddr(), err)
-		}
-	}()
-
-	conn, err := manet.Dial(ma)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(conn.RemoteAddr())
-
+// GetRandomLocalMutlAddr 获取随机本地地址
+func GetRandomLocalMutlAddr() multiaddr.Multiaddr {
+	port := rand.Int()%1000 + 9000
+	mastr := fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port)
+	ma, _ := multiaddr.NewMultiaddr(mastr)
+	return ma
 }
 
-func TestConn(t *testing.T) {
-	var localMa = "/ip4/0.0.0.0/tcp/9011"
-	var localMa2 = "/ip4/0.0.0.0/tcp/9012"
-
-	ma, _ := multiaddr.NewMultiaddr(localMa)
-	ma2, _ := multiaddr.NewMultiaddr(localMa2)
-
-	hst, err := host.NewHost(option.ListenAddr(ma))
+func GetRandomHost() host.Host {
+	hst, err := host.NewHost(option.ListenAddr(GetRandomLocalMutlAddr()))
 	if err != nil {
-		t.Fatal(err.Error())
+		panic(err)
 	}
-	if err := hst.Server().Register(&RpcService{}); err != nil {
+	return hst
+}
+
+// 测试建立连接发送消息
+func TestConn(t *testing.T) {
+
+	hst := GetRandomHost()
+
+	// 注册远程接口
+	if err := hst.Server().Register(new(RpcService)); err != nil {
 		t.Fatal(err)
 	}
 
 	go hst.Accept()
 
-	hst2, err := host.NewHost(option.ListenAddr(ma2))
+	hst2 := GetRandomHost()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	clt, err := hst2.Connect(ctx, hst.Config().ID, hst.Addrs())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
-	defer cancel()
-	//addrs, _ := hst.Addrs()
-	clt, err := hst2.Connect(ctx, hst.Config().ID, []multiaddr.Multiaddr{ma})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
 	var res Reply
-	if err := clt.Call("rpcService.Ping", "", &res); err != nil {
+
+	// 调用远程接口
+	if err := clt.Call("RpcService.Test", "", &res); err != nil {
 		t.Fatal(err)
 	} else {
 		t.Log(res.Value)
 	}
+
 }
 
-// 测试发送protobuf消息。注册消息处理器
-func TestConnSendProtobufMsgAndHandler(t *testing.T) {
+// 测试建立连接，交换peerinfo
+func TestConnSendPeerInfo(t *testing.T) {
+	hst := GetRandomHost()
+	if err := hst.Server().Register(new(RpcService)); err != nil {
+		t.Fatal(err)
+	}
+
+	go hst.Accept()
+
+	hst2 := GetRandomHost()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	clt, err := hst2.Connect(ctx, hst.Config().ID, hst.Addrs())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	peerInfo := clt.RemotePeer()
+	t.Log(peerInfo.ID.Pretty(), peerInfo.Addrs)
 }

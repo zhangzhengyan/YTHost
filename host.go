@@ -3,8 +3,10 @@ package host
 import (
 	"context"
 	"fmt"
+	"github.com/graydream/YTHost/client"
 	"github.com/graydream/YTHost/config"
 	"github.com/graydream/YTHost/option"
+	"github.com/graydream/YTHost/service"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 	mnet "github.com/multiformats/go-multiaddr-net"
@@ -13,9 +15,13 @@ import (
 	"sync"
 )
 
-//type Host interface {
-//	Connect() net.Conn
-//}
+type Host interface {
+	Accept()
+	Addrs() []multiaddr.Multiaddr
+	Server() *rpc.Server
+	Config() *config.Config
+	Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (*client.YTHostClient, error)
+}
 
 type host struct {
 	cfg      *config.Config
@@ -46,12 +52,20 @@ func NewHost(options ...option.Option) (*host, error) {
 }
 
 func (hst *host) Accept() {
-	mnet.NetListener(hst.listener).Accept()
+	addrService := new(service.AddrService)
+	addrService.Info.ID = hst.cfg.ID
+	addrService.Info.Addrs = hst.Addrs()
+
+	if err := hst.srv.RegisterName("as", addrService); err != nil {
+		panic(err)
+	}
+	hst.srv.Accept(mnet.NetListener(hst.listener))
 }
 
 func (hst *host) Listenner() mnet.Listener {
 	return hst.listener
 }
+
 func (hst *host) Server() *rpc.Server {
 	return hst.srv
 }
@@ -60,22 +74,22 @@ func (hst *host) Config() *config.Config {
 	return hst.cfg
 }
 
-func (hst *host) Addrs() ([]multiaddr.Multiaddr, error) {
+func (hst *host) Addrs() []multiaddr.Multiaddr {
 
 	port, err := hst.listener.Multiaddr().ValueForProtocol(multiaddr.P_TCP)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
 	tcpMa, err := multiaddr.NewMultiaddr(fmt.Sprintf("/tcp/%s", port))
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
 	var res []multiaddr.Multiaddr
 	maddrs, err := mnet.InterfaceMultiaddrs()
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
 	for _, ma := range maddrs {
@@ -85,22 +99,18 @@ func (hst *host) Addrs() ([]multiaddr.Multiaddr, error) {
 		}
 		res = append(res, newMa)
 	}
-	return res, nil
+	return res
 }
 
 // Connect 连接远程节点
-func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (*rpc.Client, error) {
+func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (*client.YTHostClient, error) {
 	connChan := make(chan mnet.Conn)
 	errorAll := make(chan struct{})
 
 	wg := sync.WaitGroup{}
-	addrs, err := hst.Addrs()
-	if err != nil {
-		return nil, err
-	}
-	wg.Add(len(addrs))
+	wg.Add(len(mas))
 
-	for _, addr := range addrs {
+	for _, addr := range mas {
 		go func(ma multiaddr.Multiaddr) {
 			if conn, err := mnet.Dial(ma); err != nil {
 				wg.Done()
@@ -117,7 +127,14 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 	select {
 	case conn := <-connChan:
 		clt := rpc.NewClient(conn)
-		return clt, nil
+		ytclt, err := client.WarpClient(clt, &peer.AddrInfo{
+			hst.cfg.ID,
+			hst.Addrs(),
+		})
+		if err != nil {
+			return nil, err
+		}
+		return ytclt, nil
 	case <-errorAll:
 		return nil, fmt.Errorf("all maddr dail fail")
 	case <-ctx.Done():
