@@ -42,10 +42,12 @@ func TestConn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
 	hst2, err := host.NewHost(option.ListenAddr(ma2))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 	addrs, _ := hst.Addrs()

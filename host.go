@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/graydream/YTHost/config"
-	"github.com/graydream/YTHost/event"
 	"github.com/graydream/YTHost/option"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
@@ -83,13 +82,6 @@ func (hst *host) Serve(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			default:
-				if conn, err := hst.listener.Accept(); err != nil {
-					hst.Emit(event.Event{"error", err})
-				} else {
-					maddrs, _ := hst.Addrs()
-					pi := peer.AddrInfo{ID: hst.cfg.ID, Addrs: maddrs}
-					hst.addConn(pi, conn)
-				}
 			}
 		}
 	}()
@@ -125,11 +117,8 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 	case <-ctx.Done():
 		return nil, fmt.Errorf("dail timeout")
 	case conn := <-connChan:
-		maddrs, _ := hst.Addrs()
-		pi := peer.AddrInfo{ID: hst.cfg.ID, Addrs: maddrs}
-		if err := hst.addConn(pi, conn); err != nil {
-			return nil, fmt.Errorf("add conn fail")
-		}
+		//maddrs, _ := hst.Addrs()
+		//pi := peer.AddrInfo{ID: hst.cfg.ID, Addrs: maddrs}
 		return conn, nil
 	case <-AllDailFailErrorChan:
 		return nil, fmt.Errorf("All maddr dail fail")

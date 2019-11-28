@@ -38,12 +38,5 @@ func TestNetAddress(t *testing.T) {
 	t.Log()
 }
 
-func TestNetConn(t *testing.T) {
-	//m1, _ := multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/9001")
-	//m2, _ := multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/9002")
-	//
-	//if ls, err := manet.Listen(m1); err != nil {
-	//	t.Fatal(err)
-	//}
-
+func TestGob(t *testing.T) {
 }

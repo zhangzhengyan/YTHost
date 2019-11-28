@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/graydream/YTHost/DataFrameEncoder"
-	"github.com/graydream/YTHost/net"
 	mnet "github.com/multiformats/go-multiaddr-net"
 )
 
@@ -63,7 +62,7 @@ type PBMsgHandler struct {
 	dc *dataFrameEncoder.FrameDecoder
 }
 
-func NewPBMsgHander(conn net.Conn) *PBMsgHandler {
+func NewPBMsgHander(conn mnet.Conn) *PBMsgHandler {
 	pbmh := new(PBMsgHandler)
 	pbmh.Conn = conn
 	pbmh.ec = dataFrameEncoder.NewEncoder(conn)

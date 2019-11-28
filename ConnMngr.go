@@ -8,7 +8,6 @@ import (
 	"github.com/graydream/YTHost/net"
 	"github.com/graydream/YTHost/pbMsgHandler"
 	"github.com/libp2p/go-libp2p-core/peer"
-	mnet "github.com/multiformats/go-multiaddr-net"
 	"time"
 )
 
@@ -24,13 +23,9 @@ func NewConnMngr() *ConnManager {
 	return connMngr
 }
 
-func (cm *ConnManager) addConn(pi peer.AddrInfo, conn mnet.Conn) error {
-	nc, err := net.WarpConn(conn, &pi)
-	if err != nil {
-		return err
-	}
-	time.Sleep(time.Second)
-	cm.conns[nc.RemotePeer().ID] = pbMsgHandler.NewPBMsgHander(nc)
+func (cm *ConnManager) addConn(pi peer.AddrInfo, conn net.Conn) error {
+	cm.conns[conn.RemotePeer().ID] = pbMsgHandler.NewPBMsgHander(conn)
+	fmt.Println("peerID", conn.RemotePeer().ID)
 	return nil
 }
 
