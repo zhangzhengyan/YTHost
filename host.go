@@ -8,6 +8,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 	mnet "github.com/multiformats/go-multiaddr-net"
+
+	"net/rpc"
 	"sync"
 )
 
@@ -18,7 +20,7 @@ import (
 type host struct {
 	cfg      *config.Config
 	listener mnet.Listener
-	*ConnManager
+	srv      *rpc.Server
 }
 
 func NewHost(options ...option.Option) (*host, error) {
@@ -30,17 +32,28 @@ func NewHost(options ...option.Option) (*host, error) {
 	}
 
 	ls, err := mnet.Listen(hst.cfg.ListenAddr)
+
 	if err != nil {
 		return nil, err
 	}
 
 	hst.listener = ls
-	hst.ConnManager = NewConnMngr()
+
+	srv := rpc.NewServer()
+	hst.srv = srv
+
 	return hst, nil
+}
+
+func (hst *host) Accept() {
+	mnet.NetListener(hst.listener).Accept()
 }
 
 func (hst *host) Listenner() mnet.Listener {
 	return hst.listener
+}
+func (hst *host) Server() *rpc.Server {
+	return hst.srv
 }
 
 func (hst *host) Config() *config.Config {
@@ -75,62 +88,39 @@ func (hst *host) Addrs() ([]multiaddr.Multiaddr, error) {
 	return res, nil
 }
 
-func (hst *host) Serve(ctx context.Context) {
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-		}
-	}()
-	hst.serve(ctx)
-}
-
 // Connect 连接远程节点
-func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (mnet.Conn, error) {
-	var connChan = make(chan mnet.Conn)
-	var AllDailFailErrorChan = make(chan struct{})
+func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (*rpc.Client, error) {
+	connChan := make(chan mnet.Conn)
+	errorAll := make(chan struct{})
+
 	wg := sync.WaitGroup{}
-	wg.Add(len(mas))
+	addrs, err := hst.Addrs()
+	if err != nil {
+		return nil, err
+	}
+	wg.Add(len(addrs))
 
-	go func() {
-		for _, ma := range mas {
-			go func(ma multiaddr.Multiaddr) {
-				if conn, err := mnet.Dial(ma); err == nil {
-					connChan <- conn
-				} else {
-					fmt.Println(err)
-					wg.Done()
-				}
-			}(ma)
-		}
-	}()
-
+	for _, addr := range addrs {
+		go func(ma multiaddr.Multiaddr) {
+			if conn, err := mnet.Dial(ma); err != nil {
+				wg.Done()
+			} else {
+				connChan <- conn
+			}
+		}(addr)
+	}
 	go func() {
 		wg.Wait()
-		AllDailFailErrorChan <- struct{}{}
+		errorAll <- struct{}{}
 	}()
 
 	select {
-	case <-ctx.Done():
-		return nil, fmt.Errorf("dail timeout")
 	case conn := <-connChan:
-		//maddrs, _ := hst.Addrs()
-		//pi := peer.AddrInfo{ID: hst.cfg.ID, Addrs: maddrs}
-		return conn, nil
-	case <-AllDailFailErrorChan:
-		return nil, fmt.Errorf("All maddr dail fail")
-	}
-}
-
-func (hst *host) ConnectMaString(ctx context.Context, pid peer.ID, mastring string) (mnet.Conn, error) {
-	if ma, err := multiaddr.NewMultiaddr(mastring); err != nil {
-		return nil, fmt.Errorf(fmt.Sprintf("Parse maddr Error %s", mastring))
-	} else if pi, err := peer.AddrInfoFromP2pAddr(ma); err != nil {
-		return nil, fmt.Errorf(fmt.Sprintf("Parse maddr to peerInfo Error %s", mastring))
-	} else {
-		return hst.Connect(ctx, pid, pi.Addrs)
+		clt := rpc.NewClient(conn)
+		return clt, nil
+	case <-errorAll:
+		return nil, fmt.Errorf("all maddr dail fail")
+	case <-ctx.Done():
+		return nil, fmt.Errorf("ctx time out")
 	}
 }
