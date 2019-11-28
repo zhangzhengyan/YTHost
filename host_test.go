@@ -107,5 +107,7 @@ func TestConnSendPeerInfo(t *testing.T) {
 	}
 
 	peerInfo := clt.RemotePeer()
+
+	// 打印节点信息
 	t.Log(peerInfo.ID.Pretty(), peerInfo.Addrs)
 }
