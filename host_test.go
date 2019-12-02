@@ -111,3 +111,33 @@ func TestConnSendPeerInfo(t *testing.T) {
 	// 打印节点信息
 	t.Log(peerInfo.ID.Pretty(), peerInfo.Addrs)
 }
+
+// 发送，处理消息
+func TestHandleMsg(t *testing.T) {
+	hst := GetRandomHost()
+	if err := hst.Server().Register(new(RpcService)); err != nil {
+		t.Fatal(err)
+	}
+
+	hst.RegisterHandler(0x11, func(requestData []byte) (bytes []byte, e error) {
+		t.Log(string(requestData))
+		return []byte("111"), nil
+	})
+
+	go hst.Accept()
+
+	hst2 := GetRandomHost()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	clt, err := hst2.Connect(ctx, hst.Config().ID, hst.Addrs())
+	defer clt.Close()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if res, err := clt.SendMsg(0x11, []byte("2222")); err != nil {
+		t.Fatal(err)
+	} else {
+		t.Log(string(res))
+	}
+}

@@ -40,3 +40,12 @@ func WarpClient(clt *rpc.Client, pi *peer.AddrInfo) (*YTHostClient, error) {
 	yc.localPeer = pi
 	return yc, nil
 }
+
+func (yc *YTHostClient) SendMsg(id service.MsgId, data []byte) ([]byte, error) {
+	var res service.Response
+	if err := yc.Call("ms.HandleMsg", service.Request{id, data}, &res); err != nil {
+		return nil, err
+	} else {
+		return res.Data, nil
+	}
+}

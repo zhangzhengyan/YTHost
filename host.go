@@ -21,12 +21,14 @@ type Host interface {
 	Server() *rpc.Server
 	Config() *config.Config
 	Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (*client.YTHostClient, error)
+	RegisterHandler(id service.MsgId, handlerFunc service.Handler)
 }
 
 type host struct {
 	cfg      *config.Config
 	listener mnet.Listener
 	srv      *rpc.Server
+	service.HandlerMap
 }
 
 func NewHost(options ...option.Option) (*host, error) {
@@ -48,6 +50,8 @@ func NewHost(options ...option.Option) (*host, error) {
 	srv := rpc.NewServer()
 	hst.srv = srv
 
+	hst.HandlerMap = make(service.HandlerMap)
+
 	return hst, nil
 }
 
@@ -56,9 +60,17 @@ func (hst *host) Accept() {
 	addrService.Info.ID = hst.cfg.ID
 	addrService.Info.Addrs = hst.Addrs()
 
+	msgService := new(service.MsgService)
+	msgService.Handler = hst.HandlerMap
+
 	if err := hst.srv.RegisterName("as", addrService); err != nil {
 		panic(err)
 	}
+
+	if err := hst.srv.RegisterName("ms", msgService); err != nil {
+		panic(err)
+	}
+
 	hst.srv.Accept(mnet.NetListener(hst.listener))
 }
 
