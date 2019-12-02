@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"github.com/graydream/YTHost/service"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -41,11 +42,16 @@ func WarpClient(clt *rpc.Client, pi *peer.AddrInfo) (*YTHostClient, error) {
 	return yc, nil
 }
 
-func (yc *YTHostClient) SendMsg(id service.MsgId, data []byte) ([]byte, error) {
-	var res service.Response
-	if err := yc.Call("ms.HandleMsg", service.Request{id, data}, &res); err != nil {
-		return nil, err
-	} else {
-		return res.Data, nil
+func (yc *YTHostClient) SendMsg(ctx context.Context, id service.MsgId, data []byte) ([]byte, error) {
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("ctx time out")
+	default:
+		var res service.Response
+		if err := yc.Call("ms.HandleMsg", service.Request{id, data}, &res); err != nil {
+			return nil, err
+		} else {
+			return res.Data, nil
+		}
 	}
 }

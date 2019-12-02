@@ -131,11 +131,12 @@ func TestHandleMsg(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 	clt, err := hst2.Connect(ctx, hst.Config().ID, hst.Addrs())
+	// 关闭连接
 	defer clt.Close()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if res, err := clt.SendMsg(0x11, []byte("2222")); err != nil {
+	if res, err := clt.SendMsg(context.Background(), 0x11, []byte("2222")); err != nil {
 		t.Fatal(err)
 	} else {
 		t.Log(string(res))
