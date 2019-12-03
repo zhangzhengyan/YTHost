@@ -18,4 +18,5 @@ type Host interface {
 	Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (*client.YTHostClient, error)
 	RegisterHandler(id service.MsgId, handlerFunc service.Handler)
 	RegisterGlobalMsgHandler(handlerFunc service.Handler)
+	ConnectAddrStrings(ctx context.Context, id string, addrs []string) (*client.YTHostClient, error)
 }

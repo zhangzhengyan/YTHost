@@ -155,3 +155,22 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 		return nil, fmt.Errorf("ctx time out")
 	}
 }
+
+// ConnectAddrStrings 连接字符串地址
+func (hst *host) ConnectAddrStrings(ctx context.Context, id string, addrs []string) (*client.YTHostClient, error) {
+	pid, err := peer.IDFromString(id)
+	if err != nil {
+		return nil, err
+	}
+
+	var mas = make([]multiaddr.Multiaddr, len(addrs))
+	for k, v := range addrs {
+		ma, err := multiaddr.NewMultiaddr(v)
+		if err != nil {
+			continue
+		}
+		mas[k] = ma
+	}
+
+	return hst.Connect(ctx, pid, mas)
+}
