@@ -6,6 +6,7 @@ import (
 	"github.com/graydream/YTHost/client"
 	"github.com/graydream/YTHost/config"
 	"github.com/graydream/YTHost/option"
+	"github.com/graydream/YTHost/peerInfo"
 	"github.com/graydream/YTHost/service"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
@@ -15,14 +16,14 @@ import (
 	"sync"
 )
 
-type Host interface {
-	Accept()
-	Addrs() []multiaddr.Multiaddr
-	Server() *rpc.Server
-	Config() *config.Config
-	Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (*client.YTHostClient, error)
-	RegisterHandler(id service.MsgId, handlerFunc service.Handler)
-}
+//type Host interface {
+//	Accept()
+//	Addrs() []multiaddr.Multiaddr
+//	Server() *rpc.Server
+//	Config() *config.Config
+//	Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (*client.YTHostClient, error)
+//	RegisterHandler(id service.MsgId, handlerFunc service.Handler)
+//}
 
 type host struct {
 	cfg      *config.Config
@@ -62,6 +63,7 @@ func (hst *host) Accept() {
 
 	msgService := new(service.MsgService)
 	msgService.Handler = hst.HandlerMap
+	msgService.Pi = peerInfo.PeerInfo{hst.cfg.ID, hst.Addrs()}
 
 	if err := hst.srv.RegisterName("as", addrService); err != nil {
 		panic(err)

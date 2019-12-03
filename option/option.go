@@ -2,13 +2,23 @@ package option
 
 import (
 	"github.com/graydream/YTHost/config"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 )
 
-type Option func (cfg *config.Config)
+type Option func(cfg *config.Config)
 
 func ListenAddr(ma multiaddr.Multiaddr) Option {
 	return func(cfg *config.Config) {
 		cfg.ListenAddr = ma
+	}
+}
+
+func Identity(key crypto.PrivKey) Option {
+	return func(cfg *config.Config) {
+		cfg.Privkey = key
+		id, _ := peer.IDFromPrivateKey(cfg.Privkey)
+		cfg.ID = id
 	}
 }

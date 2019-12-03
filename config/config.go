@@ -24,5 +24,6 @@ func newConfig(cfg *Config) *Config {
 	pi, _, _ := ic.GenerateSecp256k1Key(rand.Reader)
 	id, _ := peer.IDFromPrivateKey(pi)
 	cfg.ID = id
+	cfg.Privkey = pi
 	return cfg
 }

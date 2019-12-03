@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	host "github.com/graydream/YTHost"
+	. "github.com/graydream/YTHost/hostInterface"
 	"github.com/graydream/YTHost/option"
+	"github.com/graydream/YTHost/peerInfo"
 	"github.com/multiformats/go-multiaddr"
 	"math/rand"
 	"testing"
@@ -48,7 +50,7 @@ func GetRandomLocalMutlAddr() multiaddr.Multiaddr {
 	return ma
 }
 
-func GetRandomHost() host.Host {
+func GetRandomHost() Host {
 	hst, err := host.NewHost(option.ListenAddr(GetRandomLocalMutlAddr()))
 	if err != nil {
 		panic(err)
@@ -119,8 +121,8 @@ func TestHandleMsg(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	hst.RegisterHandler(0x11, func(requestData []byte) (bytes []byte, e error) {
-		t.Log(string(requestData))
+	hst.RegisterHandler(0x11, func(requestData []byte, remotePeer peerInfo.PeerInfo) (bytes []byte, e error) {
+		t.Log(string(requestData), remotePeer.StringList())
 		return []byte("111"), nil
 	})
 
@@ -140,5 +142,41 @@ func TestHandleMsg(t *testing.T) {
 		t.Fatal(err)
 	} else {
 		t.Log(string(res))
+	}
+}
+
+// 发送，处理全局消息
+func TestGlobalHandleMsg(t *testing.T) {
+	hst := GetRandomHost()
+	if err := hst.Server().Register(new(RpcService)); err != nil {
+		t.Fatal(err)
+	}
+
+	hst.RegisterGlobalMsgHandler(func(requestData []byte, remotePeer peerInfo.PeerInfo) (bytes []byte, e error) {
+		t.Log(string(requestData), remotePeer.StringList())
+		return []byte("111"), nil
+	})
+
+	go hst.Accept()
+
+	hst2 := GetRandomHost()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	clt, err := hst2.Connect(ctx, hst.Config().ID, hst.Addrs())
+	// 关闭连接
+	defer clt.Close()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if res, err := clt.SendMsg(context.Background(), 0x11, []byte("2222")); err != nil {
+		t.Fatal(err)
+	} else {
+		t.Log(string(res))
+	}
+	if res, err := clt.SendMsg(context.Background(), 0x12, []byte("121212")); err != nil {
+		t.Fatal(err)
+	} else {
+		t.Log(res)
 	}
 }
