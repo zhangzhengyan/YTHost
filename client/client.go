@@ -55,3 +55,8 @@ func (yc *YTHostClient) SendMsg(ctx context.Context, id int32, data []byte) ([]b
 		}
 	}
 }
+
+func (yc *YTHostClient) SendMsgClose(ctx context.Context, id int32, data []byte) ([]byte, error) {
+	defer yc.Close()
+	return yc.SendMsg(ctx, id, data)
+}
