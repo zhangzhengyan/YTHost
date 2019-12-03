@@ -9,9 +9,9 @@ type MsgId int32
 
 type Handler func(requestData []byte, remotePeer peerInfo.PeerInfo) ([]byte, error)
 
-type HandlerMap map[MsgId]Handler
+type HandlerMap map[int32]Handler
 
-func (hm HandlerMap) RegisterHandler(id MsgId, handlerFunc Handler) {
+func (hm HandlerMap) RegisterHandler(id int32, handlerFunc Handler) {
 	if hm == nil {
 		hm = make(HandlerMap)
 	}
@@ -26,7 +26,7 @@ func (hm HandlerMap) RegisterGlobalMsgHandler(handlerFunc Handler) {
 	hm[0x0] = handlerFunc
 }
 
-func (hm HandlerMap) RemoveHandler(id MsgId) {
+func (hm HandlerMap) RemoveHandler(id int32) {
 	delete(hm, id)
 }
 
@@ -36,7 +36,7 @@ type MsgService struct {
 }
 
 type Request struct {
-	MsgId   MsgId
+	MsgId   int32
 	ReqData []byte
 }
 
@@ -63,7 +63,6 @@ func (ms *MsgService) HandleMsg(req Request, data *Response) error {
 			data.Data = resdata
 			return nil
 		}
-
 	} else {
 		return fmt.Errorf("no handler")
 	}

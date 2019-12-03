@@ -48,7 +48,7 @@ func (yc *YTHostClient) SendMsg(ctx context.Context, id int32, data []byte) ([]b
 		return nil, fmt.Errorf("ctx time out")
 	default:
 		var res service.Response
-		if err := yc.Call("ms.HandleMsg", service.Request{service.MsgId(id), data}, &res); err != nil {
+		if err := yc.Call("ms.HandleMsg", service.Request{id, data}, &res); err != nil {
 			return nil, err
 		} else {
 			return res.Data, nil
