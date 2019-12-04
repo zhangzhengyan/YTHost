@@ -33,10 +33,10 @@ func (hm HandlerMap) RegisterGlobalMsgHandler(handlerFunc Handler) {
 }
 
 // RemoveHandler 移除消息处理器
-func (hm HandlerMap) RemoveMsgHandler(id int32) {
+func (hm HandlerMap) RemoveHandler(id int32) {
 	delete(hm, id)
 }
-func (hm HandlerMap) RemoveGlobalMsgHandler() {
+func (hm HandlerMap) RemoveGlobalHandler() {
 	delete(hm, 0x0)
 }
 
