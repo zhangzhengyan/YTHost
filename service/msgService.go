@@ -11,7 +11,16 @@ type Handler func(requestData []byte, remotePeer peerInfo.PeerInfo) ([]byte, err
 
 type HandlerMap map[int32]Handler
 
-func (hm HandlerMap) RegisterHandler(id int32, handlerFunc Handler) {
+// RegisterHandler 注册消息处理器
+func (hm HandlerMap) RegisterHandler(id int32, handlerFunc Handler) error {
+	if id < 0x10 {
+		return fmt.Errorf("msgID need >= 0x10")
+	}
+	hm.registerHandler(id, handlerFunc)
+	return nil
+}
+
+func (hm HandlerMap) registerHandler(id int32, handlerFunc Handler) {
 	if hm == nil {
 		hm = make(HandlerMap)
 	}
@@ -20,14 +29,15 @@ func (hm HandlerMap) RegisterHandler(id int32, handlerFunc Handler) {
 
 // RegisterGlobalMsgHandler 注册全局消息处理器
 func (hm HandlerMap) RegisterGlobalMsgHandler(handlerFunc Handler) {
-	if hm == nil {
-		hm = make(HandlerMap)
-	}
-	hm[0x0] = handlerFunc
+	hm.registerHandler(0x0, handlerFunc)
 }
 
-func (hm HandlerMap) RemoveHandler(id int32) {
+// RemoveHandler 移除消息处理器
+func (hm HandlerMap) RemoveMsgHandler(id int32) {
 	delete(hm, id)
+}
+func (hm HandlerMap) RemoveGlobalMsgHandler() {
+	delete(hm, 0x0)
 }
 
 type MsgService struct {

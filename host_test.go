@@ -213,4 +213,5 @@ func TestGlobalHandleMsgClose(t *testing.T) {
 	} else {
 		t.Log(err)
 	}
+
 }
