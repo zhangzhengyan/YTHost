@@ -3,6 +3,7 @@ package hostInterface
 import (
 	"context"
 	"github.com/graydream/YTHost/client"
+	"github.com/graydream/YTHost/clientStore"
 	"github.com/graydream/YTHost/config"
 	"github.com/graydream/YTHost/service"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -21,4 +22,5 @@ type Host interface {
 	RemoveHandler(id int32)
 	RemoveGlobalHandler()
 	ConnectAddrStrings(ctx context.Context, id string, addrs []string) (*client.YTHostClient, error)
+	ClientStore() *clientStore.ClientStore
 }

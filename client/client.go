@@ -14,6 +14,7 @@ import (
 type YTHostClient struct {
 	*rpc.Client
 	localPeer *peer.AddrInfo
+	isClosed  bool
 }
 
 func (yc *YTHostClient) RemotePeer() peer.AddrInfo {
@@ -50,6 +51,7 @@ func WarpClient(clt *rpc.Client, pi *peer.AddrInfo) (*YTHostClient, error) {
 	var yc = new(YTHostClient)
 	yc.Client = clt
 	yc.localPeer = pi
+	yc.isClosed = false
 	return yc, nil
 }
 
@@ -65,6 +67,15 @@ func (yc *YTHostClient) SendMsg(ctx context.Context, id int32, data []byte) ([]b
 			return res.Data, nil
 		}
 	}
+}
+
+func (yc *YTHostClient) Close() error {
+	yc.isClosed = true
+	return yc.Client.Close()
+}
+
+func (yc *YTHostClient) IsClosed() bool {
+	return yc.isClosed
 }
 
 func (yc *YTHostClient) SendMsgClose(ctx context.Context, id int32, data []byte) ([]byte, error) {

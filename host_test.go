@@ -219,3 +219,50 @@ func TestGlobalHandleMsgClose(t *testing.T) {
 	}
 
 }
+
+// 测试连接管理
+func TestCS(t *testing.T) {
+	hst := GetRandomHost()
+	if err := hst.Server().Register(new(RpcService)); err != nil {
+		t.Fatal(err)
+	}
+
+	hst.RegisterGlobalMsgHandler(func(requestData []byte, remotePeer peerInfo.PeerInfo) (bytes []byte, e error) {
+		t.Log(string(requestData), remotePeer.StringList())
+		return []byte("111"), nil
+	})
+
+	go hst.Accept()
+
+	hst2 := GetRandomHost()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+
+	clt, err := hst2.ClientStore().Get(ctx, hst.Config().ID, hst.Addrs())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 第二次获取相同连接，不应建立新的连接
+	clt, err = hst2.ClientStore().Get(ctx, hst.Config().ID, hst.Addrs())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hst2.ClientStore().Len() > 1 {
+		t.Fatal("不应该建立新连接")
+	}
+
+	if res, err := clt.SendMsg(context.Background(), 0x11, []byte("2222")); err != nil {
+		t.Fatal(err)
+	} else {
+		t.Log(string(res))
+	}
+	if err := hst2.ClientStore().Close(hst.Config().ID); err != nil {
+		t.Fatal(err)
+	}
+	if res, err := clt.SendMsg(context.Background(), 0x12, []byte("121213")); err == nil {
+		t.Fatal(fmt.Errorf("此处连接应该关闭"), res)
+	} else {
+		t.Log(err)
+	}
+}

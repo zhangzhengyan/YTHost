@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/graydream/YTHost/client"
+	"github.com/graydream/YTHost/clientStore"
 	"github.com/graydream/YTHost/config"
 	"github.com/graydream/YTHost/option"
 	"github.com/graydream/YTHost/peerInfo"
@@ -30,6 +31,7 @@ type host struct {
 	listener mnet.Listener
 	srv      *rpc.Server
 	service.HandlerMap
+	clientStore *clientStore.ClientStore
 }
 
 func NewHost(options ...option.Option) (*host, error) {
@@ -53,6 +55,7 @@ func NewHost(options ...option.Option) (*host, error) {
 
 	hst.HandlerMap = make(service.HandlerMap)
 
+	hst.clientStore = clientStore.NewClientStore(hst.Connect)
 	return hst, nil
 }
 
@@ -87,6 +90,10 @@ func (hst *host) Server() *rpc.Server {
 
 func (hst *host) Config() *config.Config {
 	return hst.cfg
+}
+
+func (hst *host) ClientStore() *clientStore.ClientStore {
+	return hst.clientStore
 }
 
 func (hst *host) Addrs() []multiaddr.Multiaddr {
