@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/graydream/YTHost/service"
+	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 
@@ -29,6 +30,16 @@ func (yc *YTHostClient) RemotePeer() peer.AddrInfo {
 	}
 
 	return ai
+}
+
+func (yc *YTHostClient) RemotePeerPubkey() crypto.PubKey {
+	var pi service.PeerInfo
+
+	if err := yc.Call("as.RemotePeerInfo", "", &pi); err != nil {
+		fmt.Println(err)
+	}
+	pk, _ := crypto.UnmarshalPublicKey(pi.PubKey)
+	return pk
 }
 
 func (yc *YTHostClient) LocalPeer() peer.AddrInfo {

@@ -60,6 +60,7 @@ func (hst *host) Accept() {
 	addrService := new(service.AddrService)
 	addrService.Info.ID = hst.cfg.ID
 	addrService.Info.Addrs = hst.Addrs()
+	addrService.PubKey = hst.Config().Privkey.GetPublic()
 
 	msgService := new(service.MsgService)
 	msgService.Handler = hst.HandlerMap

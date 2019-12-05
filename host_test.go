@@ -7,6 +7,7 @@ import (
 	. "github.com/graydream/YTHost/hostInterface"
 	"github.com/graydream/YTHost/option"
 	"github.com/graydream/YTHost/peerInfo"
+	"github.com/mr-tron/base58"
 	"github.com/multiformats/go-multiaddr"
 	"math/rand"
 	"testing"
@@ -112,6 +113,9 @@ func TestConnSendPeerInfo(t *testing.T) {
 
 	// 打印节点信息
 	t.Log(peerInfo.ID.Pretty(), peerInfo.Addrs)
+
+	pkb, _ := clt.RemotePeerPubkey().Bytes()
+	t.Log(base58.Encode(pkb))
 }
 
 // 发送，处理消息
