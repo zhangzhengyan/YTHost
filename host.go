@@ -182,3 +182,12 @@ func (hst *host) ConnectAddrStrings(ctx context.Context, id string, addrs []stri
 
 	return hst.Connect(ctx, pid, mas)
 }
+
+// SendMsg 发送消息
+func (hst *host) SendMsg(ctx context.Context, pid peer.ID, mid int32, msg []byte) ([]byte, error) {
+	clt, ok := hst.ClientStore().GetClient(pid)
+	if !ok {
+		return nil, fmt.Errorf("no client ID is:%s", pid.Pretty())
+	}
+	return clt.SendMsgClose(ctx, mid, msg)
+}

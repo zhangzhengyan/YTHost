@@ -244,7 +244,7 @@ func TestCS(t *testing.T) {
 	}
 
 	// 第二次获取相同连接，不应建立新的连接
-	clt, err = hst2.ClientStore().Get(ctx, hst.Config().ID, hst.Addrs())
+	_, err = hst2.ClientStore().Get(ctx, hst.Config().ID, hst.Addrs())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -252,7 +252,8 @@ func TestCS(t *testing.T) {
 		t.Fatal("不应该建立新连接")
 	}
 
-	if res, err := clt.SendMsg(context.Background(), 0x11, []byte("2222")); err != nil {
+	// 另一种发送消息的方式
+	if res, err := hst2.SendMsg(context.Background(), hst.Config().ID, 0x11, []byte("2222")); err != nil {
 		t.Fatal(err)
 	} else {
 		t.Log(string(res))

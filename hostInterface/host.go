@@ -23,4 +23,5 @@ type Host interface {
 	RemoveGlobalHandler()
 	ConnectAddrStrings(ctx context.Context, id string, addrs []string) (*client.YTHostClient, error)
 	ClientStore() *clientStore.ClientStore
+	SendMsg(ctx context.Context, pid peer.ID, mid int32, msg []byte) ([]byte, error)
 }

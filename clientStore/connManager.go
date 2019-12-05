@@ -36,6 +36,11 @@ func (cs *ClientStore) Close(pid peer.ID) error {
 	return clt.Close()
 }
 
+func (cs *ClientStore) GetClient(pid peer.ID) (*client.YTHostClient, bool) {
+	clt, ok := cs.psmap[pid]
+	return clt, ok
+}
+
 // Len 返回当前连接数
 func (cs *ClientStore) Len() int {
 	return len(cs.psmap)
