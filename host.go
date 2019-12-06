@@ -152,7 +152,7 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 		ytclt, err := client.WarpClient(clt, &peer.AddrInfo{
 			hst.cfg.ID,
 			hst.Addrs(),
-		})
+		}, hst.cfg.Privkey.GetPublic())
 		if err != nil {
 			return nil, err
 		}

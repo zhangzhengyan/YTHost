@@ -3,13 +3,22 @@ package service
 import (
 	"fmt"
 	"github.com/graydream/YTHost/peerInfo"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/multiformats/go-multiaddr"
 )
 
 type MsgId int32
 
-type Handler func(requestData []byte, remotePeer peerInfo.PeerInfo) ([]byte, error)
+type Handler func(requestData []byte, head Head) ([]byte, error)
 
 type HandlerMap map[int32]Handler
+
+type Head struct {
+	RemotePeerID peer.ID
+	RemoteAddrs  []multiaddr.Multiaddr
+	RemotePubKey crypto.PubKey
+}
 
 // RegisterHandler 注册消息处理器
 func (hm HandlerMap) RegisterHandler(id int32, handlerFunc Handler) error {
@@ -46,8 +55,9 @@ type MsgService struct {
 }
 
 type Request struct {
-	MsgId   int32
-	ReqData []byte
+	MsgId          int32
+	ReqData        []byte
+	RemotePeerInfo PeerInfo
 }
 
 type Response struct {
@@ -66,8 +76,18 @@ func (ms *MsgService) HandleMsg(req Request, data *Response) error {
 	if !ok {
 		h, ok = ms.Handler[req.MsgId]
 	}
+	head := Head{}
+	head.RemotePeerID = req.RemotePeerInfo.ID
+	pk, _ := crypto.UnmarshalPublicKey(req.RemotePeerInfo.PubKey)
+	head.RemotePubKey = pk
+
+	for _, v := range req.RemotePeerInfo.Addrs {
+		ma, _ := multiaddr.NewMultiaddr(v)
+		head.RemoteAddrs = append(head.RemoteAddrs, ma)
+	}
+
 	if ok {
-		if resdata, err := h(req.ReqData, ms.Pi); err != nil {
+		if resdata, err := h(req.ReqData, head); err != nil {
 			return nil
 		} else {
 			data.Data = resdata

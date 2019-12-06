@@ -6,7 +6,7 @@ import (
 	host "github.com/graydream/YTHost"
 	. "github.com/graydream/YTHost/hostInterface"
 	"github.com/graydream/YTHost/option"
-	"github.com/graydream/YTHost/peerInfo"
+	"github.com/graydream/YTHost/service"
 	"github.com/mr-tron/base58"
 	"github.com/multiformats/go-multiaddr"
 	"math/rand"
@@ -125,8 +125,8 @@ func TestHandleMsg(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	hst.RegisterHandler(0x11, func(requestData []byte, remotePeer peerInfo.PeerInfo) (bytes []byte, e error) {
-		t.Log(string(requestData), remotePeer.StringList())
+	hst.RegisterGlobalMsgHandler(func(requestData []byte, head service.Head) (bytes []byte, e error) {
+		t.Log(string(requestData), head.RemotePubKey, head.RemotePeerID, head.RemoteAddrs)
 		return []byte("111"), nil
 	})
 
@@ -156,8 +156,8 @@ func TestGlobalHandleMsg(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	hst.RegisterGlobalMsgHandler(func(requestData []byte, remotePeer peerInfo.PeerInfo) (bytes []byte, e error) {
-		t.Log(string(requestData), remotePeer.StringList())
+	hst.RegisterGlobalMsgHandler(func(requestData []byte, head service.Head) (bytes []byte, e error) {
+		t.Log(string(requestData), head.RemotePubKey, head.RemotePeerID, head.RemoteAddrs)
 		return []byte("111"), nil
 	})
 
@@ -192,8 +192,8 @@ func TestGlobalHandleMsgClose(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	hst.RegisterGlobalMsgHandler(func(requestData []byte, remotePeer peerInfo.PeerInfo) (bytes []byte, e error) {
-		t.Log(string(requestData), remotePeer.StringList())
+	hst.RegisterGlobalMsgHandler(func(requestData []byte, head service.Head) (bytes []byte, e error) {
+		t.Log(string(requestData), head.RemotePubKey, head.RemotePeerID, head.RemoteAddrs)
 		return []byte("111"), nil
 	})
 
@@ -227,8 +227,8 @@ func TestCS(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	hst.RegisterGlobalMsgHandler(func(requestData []byte, remotePeer peerInfo.PeerInfo) (bytes []byte, e error) {
-		t.Log(string(requestData), remotePeer.StringList())
+	hst.RegisterGlobalMsgHandler(func(requestData []byte, head service.Head) (bytes []byte, e error) {
+		t.Log(string(requestData), head.RemotePubKey, head.RemotePeerID, head.RemoteAddrs)
 		return []byte("111"), nil
 	})
 

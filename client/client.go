@@ -13,8 +13,10 @@ import (
 
 type YTHostClient struct {
 	*rpc.Client
-	localPeer *peer.AddrInfo
-	isClosed  bool
+	localPeerID     peer.ID
+	localPeerAddrs  []string
+	localPeerPubKey []byte
+	isClosed        bool
 }
 
 func (yc *YTHostClient) RemotePeer() peer.AddrInfo {
@@ -44,14 +46,25 @@ func (yc *YTHostClient) RemotePeerPubkey() crypto.PubKey {
 }
 
 func (yc *YTHostClient) LocalPeer() peer.AddrInfo {
-	return *yc.localPeer
+	pi := peer.AddrInfo{}
+	pi.ID = yc.localPeerID
+	for _, v := range yc.localPeerAddrs {
+		ma, _ := multiaddr.NewMultiaddr(v)
+		pi.Addrs = append(pi.Addrs, ma)
+	}
+	return pi
 }
 
-func WarpClient(clt *rpc.Client, pi *peer.AddrInfo) (*YTHostClient, error) {
+func WarpClient(clt *rpc.Client, pi *peer.AddrInfo, pk crypto.PubKey) (*YTHostClient, error) {
 	var yc = new(YTHostClient)
 	yc.Client = clt
-	yc.localPeer = pi
+	yc.localPeerID = pi.ID
+	yc.localPeerPubKey, _ = pk.Bytes()
+	for _, v := range pi.Addrs {
+		yc.localPeerAddrs = append(yc.localPeerAddrs, v.String())
+	}
 	yc.isClosed = false
+
 	return yc, nil
 }
 
@@ -61,7 +74,10 @@ func (yc *YTHostClient) SendMsg(ctx context.Context, id int32, data []byte) ([]b
 		return nil, fmt.Errorf("ctx time out")
 	default:
 		var res service.Response
-		if err := yc.Call("ms.HandleMsg", service.Request{id, data}, &res); err != nil {
+
+		pi := service.PeerInfo{yc.localPeerID, yc.localPeerAddrs, yc.localPeerPubKey}
+
+		if err := yc.Call("ms.HandleMsg", service.Request{id, data, pi}, &res); err != nil {
 			return nil, err
 		} else {
 			return res.Data, nil
