@@ -126,7 +126,7 @@ func TestHandleMsg(t *testing.T) {
 	}
 
 	hst.RegisterGlobalMsgHandler(func(requestData []byte, head service.Head) (bytes []byte, e error) {
-		t.Log(string(requestData), head.RemotePubKey, head.RemotePeerID, head.RemoteAddrs)
+		t.Log(string(requestData), head.RemotePubKey, head.RemotePeerID, head.RemoteAddrs, fmt.Sprintf("0x%0x", head.MsgId))
 		return []byte("111"), nil
 	})
 

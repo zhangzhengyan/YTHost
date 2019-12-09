@@ -15,6 +15,7 @@ type Handler func(requestData []byte, head Head) ([]byte, error)
 type HandlerMap map[int32]Handler
 
 type Head struct {
+	MsgId        int32
 	RemotePeerID peer.ID
 	RemoteAddrs  []multiaddr.Multiaddr
 	RemotePubKey crypto.PubKey
@@ -77,6 +78,7 @@ func (ms *MsgService) HandleMsg(req Request, data *Response) error {
 		h, ok = ms.Handler[req.MsgId]
 	}
 	head := Head{}
+	head.MsgId = req.MsgId
 	head.RemotePeerID = req.RemotePeerInfo.ID
 	pk, _ := crypto.UnmarshalPublicKey(req.RemotePeerInfo.PubKey)
 	head.RemotePubKey = pk
