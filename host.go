@@ -3,6 +3,7 @@ package host
 import (
 	"context"
 	"fmt"
+	"github.com/eoscanada/eos-go/btcsuite/btcutil/base58"
 	"github.com/graydream/YTHost/client"
 	"github.com/graydream/YTHost/clientStore"
 	"github.com/graydream/YTHost/config"
@@ -166,7 +167,8 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 
 // ConnectAddrStrings 连接字符串地址
 func (hst *host) ConnectAddrStrings(ctx context.Context, id string, addrs []string) (*client.YTHostClient, error) {
-	pid, err := peer.IDFromString(id)
+
+	pid, err := peer.IDFromBytes(base58.Decode(id))
 	if err != nil {
 		return nil, err
 	}
