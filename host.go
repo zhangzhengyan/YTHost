@@ -191,5 +191,5 @@ func (hst *host) SendMsg(ctx context.Context, pid peer.ID, mid int32, msg []byte
 	if !ok {
 		return nil, fmt.Errorf("no client ID is:%s", pid.Pretty())
 	}
-	return clt.SendMsgClose(ctx, mid, msg)
+	return clt.SendMsg(ctx, mid, msg)
 }
