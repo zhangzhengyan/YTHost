@@ -35,14 +35,13 @@ func (yc *YTHostClient) RemotePeer() peer.AddrInfo {
 	return ai
 }
 
-func (yc *YTHostClient) RemotePeerPubkey() crypto.PubKey {
+func (yc *YTHostClient) RemotePeerPubkey() []byte {
 	var pi service.PeerInfo
 
 	if err := yc.Call("as.RemotePeerInfo", "", &pi); err != nil {
 		fmt.Println(err)
 	}
-	pk, _ := crypto.UnmarshalPublicKey(pi.PubKey)
-	return pk
+	return pi.PubKey
 }
 
 func (yc *YTHostClient) LocalPeer() peer.AddrInfo {

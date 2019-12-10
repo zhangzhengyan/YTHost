@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	"github.com/graydream/YTHost/peerInfo"
-	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 )
@@ -18,7 +17,7 @@ type Head struct {
 	MsgId        int32
 	RemotePeerID peer.ID
 	RemoteAddrs  []multiaddr.Multiaddr
-	RemotePubKey crypto.PubKey
+	RemotePubKey []byte
 }
 
 // RegisterHandler 注册消息处理器
@@ -85,8 +84,7 @@ func (ms *MsgService) HandleMsg(req Request, data *Response) error {
 	head := Head{}
 	head.MsgId = req.MsgId
 	head.RemotePeerID = req.RemotePeerInfo.ID
-	pk, _ := crypto.UnmarshalPublicKey(req.RemotePeerInfo.PubKey)
-	head.RemotePubKey = pk
+	head.RemotePubKey = req.RemotePeerInfo.PubKey
 
 	for _, v := range req.RemotePeerInfo.Addrs {
 		ma, _ := multiaddr.NewMultiaddr(v)
