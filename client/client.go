@@ -41,7 +41,7 @@ func (yc *YTHostClient) RemotePeerPubkey() crypto.PubKey {
 	if err := yc.Call("as.RemotePeerInfo", "", &pi); err != nil {
 		fmt.Println(err)
 	}
-	pk, _ := crypto.UnmarshalSecp256k1PublicKey(pi.PubKey)
+	pk, _ := crypto.UnmarshalPublicKey(pi.PubKey)
 	return pk
 }
 

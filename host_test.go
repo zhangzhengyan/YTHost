@@ -114,8 +114,9 @@ func TestConnSendPeerInfo(t *testing.T) {
 	// 打印节点信息
 	t.Log(peerInfo.ID.Pretty(), peerInfo.Addrs)
 
-	pkb, _ := clt.RemotePeerPubkey().Bytes()
-	t.Log(base58.Encode(pkb))
+	pkb, _ := clt.RemotePeerPubkey().Raw()
+	pkb2, _ := hst.Config().Privkey.GetPublic().Raw()
+	t.Log(base58.Encode(pkb), base58.Encode(pkb2))
 }
 
 // 发送，处理消息

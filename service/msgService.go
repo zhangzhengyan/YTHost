@@ -85,7 +85,7 @@ func (ms *MsgService) HandleMsg(req Request, data *Response) error {
 	head := Head{}
 	head.MsgId = req.MsgId
 	head.RemotePeerID = req.RemotePeerInfo.ID
-	pk, _ := crypto.UnmarshalSecp256k1PublicKey(req.RemotePeerInfo.PubKey)
+	pk, _ := crypto.UnmarshalPublicKey(req.RemotePeerInfo.PubKey)
 	head.RemotePubKey = pk
 
 	for _, v := range req.RemotePeerInfo.Addrs {
