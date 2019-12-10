@@ -41,7 +41,7 @@ func (yc *YTHostClient) RemotePeerPubkey() crypto.PubKey {
 	if err := yc.Call("as.RemotePeerInfo", "", &pi); err != nil {
 		fmt.Println(err)
 	}
-	pk, _ := crypto.UnmarshalPublicKey(pi.PubKey)
+	pk, _ := crypto.UnmarshalSecp256k1PublicKey(pi.PubKey)
 	return pk
 }
 
@@ -59,7 +59,7 @@ func WarpClient(clt *rpc.Client, pi *peer.AddrInfo, pk crypto.PubKey) (*YTHostCl
 	var yc = new(YTHostClient)
 	yc.Client = clt
 	yc.localPeerID = pi.ID
-	yc.localPeerPubKey, _ = pk.Bytes()
+	yc.localPeerPubKey, _ = pk.Raw()
 	for _, v := range pi.Addrs {
 		yc.localPeerAddrs = append(yc.localPeerAddrs, v.String())
 	}
@@ -83,6 +83,16 @@ func (yc *YTHostClient) SendMsg(ctx context.Context, id int32, data []byte) ([]b
 			return res.Data, nil
 		}
 	}
+}
+
+func (yc *YTHostClient) Ping(ctx context.Context) bool {
+	var res string
+	if err := yc.Call("ms.Ping", "ping", &res); err != nil {
+		return false
+	} else if string(res) != "pong" {
+		return false
+	}
+	return true
 }
 
 func (yc *YTHostClient) Close() error {

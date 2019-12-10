@@ -207,6 +207,11 @@ func TestGlobalHandleMsgClose(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	if clt.Ping(ctx) {
+		t.Log("success")
+	} else {
+		t.Fatal("ping fail")
+	}
 	if res, err := clt.SendMsgClose(context.Background(), 0x11, []byte("2222")); err != nil {
 		t.Fatal(err)
 	} else {
