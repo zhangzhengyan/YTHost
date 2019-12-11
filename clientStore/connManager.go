@@ -3,9 +3,9 @@ package clientStore
 import (
 	"context"
 	"fmt"
-	"github.com/eoscanada/eos-go/btcsuite/btcutil/base58"
 	"github.com/graydream/YTHost/client"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/mr-tron/base58"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -57,7 +57,8 @@ start:
 }
 
 func (cs *ClientStore) GetByAddrString(ctx context.Context, id string, addrs []string) (*client.YTHostClient, error) {
-	pid, err := peer.IDFromBytes(base58.Decode(id))
+	buf, _ := base58.Decode(id)
+	pid, err := peer.IDFromBytes(buf)
 	if err != nil {
 		return nil, err
 	}
