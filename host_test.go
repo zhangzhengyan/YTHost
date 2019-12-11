@@ -9,6 +9,7 @@ import (
 	"github.com/graydream/YTHost/service"
 	"github.com/multiformats/go-multiaddr"
 	"math/rand"
+	"sync"
 	"testing"
 	"time"
 )
@@ -51,7 +52,10 @@ func GetRandomLocalMutlAddr() multiaddr.Multiaddr {
 }
 
 func GetRandomHost() Host {
-	hst, err := host.NewHost(option.ListenAddr(GetRandomLocalMutlAddr()))
+	return GetHost(GetRandomLocalMutlAddr())
+}
+func GetHost(ma multiaddr.Multiaddr) Host {
+	hst, err := host.NewHost(option.ListenAddr(ma))
 	if err != nil {
 		panic(err)
 	}
@@ -267,4 +271,67 @@ func TestCS(t *testing.T) {
 	} else {
 		t.Log(err)
 	}
+}
+
+func Ping(h Host, i int) bool {
+	ma, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", i+10000))
+	h2 := GetHost(ma)
+	ctx, cancle := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancle()
+	fmt.Println("开始连接", i)
+	clt, err := h2.Connect(ctx, h.Config().ID, h.Addrs())
+	if err != nil {
+		return false
+	}
+	defer clt.Close()
+	return clt.Ping(ctx)
+}
+
+func TestTimeout(t *testing.T) {
+	h := GetRandomHost()
+	//go h.Accept()
+	h2 := GetRandomHost()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	if clt, err := h2.Connect(ctx, h.Config().ID, h.Addrs()); err != nil {
+		t.Fatal(err)
+	} else {
+		_, err := clt.SendMsg(ctx, 0x13, []byte{12})
+		t.Log(err)
+		//if clt.Ping(ctx) {
+		//	t.Log("ping success")
+		//} else {
+		//	t.Log("time out")
+		//}
+	}
+}
+
+func TestStress(t *testing.T) {
+	h1 := GetRandomHost()
+	go h1.Accept()
+	errCount := 0
+	successCount := 0
+	const max_count = 2000
+	q := make(chan struct{}, 10)
+	wg := sync.WaitGroup{}
+	wg.Add(max_count)
+	for i := 0; i < max_count; i++ {
+		go func(i int) {
+			q <- struct{}{}
+			if Ping(h1, i) {
+				successCount++
+				//fmt.Println("success", i)
+			} else {
+				errCount++
+				//fmt.Println("error", i)
+			}
+			defer wg.Done()
+			defer func() { <-q }()
+		}(i)
+	}
+	wg.Wait()
+
+	t.Log("success count", successCount)
+	t.Log("error count", errCount)
 }

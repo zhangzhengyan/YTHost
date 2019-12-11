@@ -69,30 +69,54 @@ func WarpClient(clt *rpc.Client, pi *peer.AddrInfo, pk crypto.PubKey) (*YTHostCl
 }
 
 func (yc *YTHostClient) SendMsg(ctx context.Context, id int32, data []byte) ([]byte, error) {
-	select {
-	case <-ctx.Done():
-		return nil, fmt.Errorf("ctx time out")
-	default:
+
+	resChan := make(chan service.Response)
+	errChan := make(chan error)
+
+	go func() {
 		var res service.Response
 
 		pi := service.PeerInfo{yc.localPeerID, yc.localPeerAddrs, yc.localPeerPubKey}
 
 		if err := yc.Call("ms.HandleMsg", service.Request{id, data, pi}, &res); err != nil {
-			return nil, err
+			errChan <- err
 		} else {
-			return res.Data, nil
+			resChan <- res
 		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("ctx time out")
+	case rd := <-resChan:
+		return rd.Data, nil
+	case err := <-errChan:
+		return nil, err
 	}
 }
 
 func (yc *YTHostClient) Ping(ctx context.Context) bool {
-	var res string
-	if err := yc.Call("ms.Ping", "ping", &res); err != nil {
+	successChan := make(chan struct{})
+	errorChan := make(chan struct{})
+
+	go func() {
+		var res string
+		if err := yc.Call("ms.Ping", "ping", &res); err != nil {
+			errorChan <- struct{}{}
+		} else if string(res) != "pong" {
+			errorChan <- struct{}{}
+		}
+		successChan <- struct{}{}
+	}()
+
+	select {
+	case <-ctx.Done():
 		return false
-	} else if string(res) != "pong" {
+	case <-errorChan:
 		return false
+	case <-successChan:
+		return true
 	}
-	return true
 }
 
 func (yc *YTHostClient) Close() error {
