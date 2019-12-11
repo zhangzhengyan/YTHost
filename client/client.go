@@ -73,6 +73,12 @@ func (yc *YTHostClient) SendMsg(ctx context.Context, id int32, data []byte) ([]b
 	resChan := make(chan service.Response)
 	errChan := make(chan error)
 
+	defer func() {
+		if err := recover(); err != nil {
+			errChan <- err.(error)
+		}
+	}()
+
 	go func() {
 		var res service.Response
 
@@ -96,8 +102,15 @@ func (yc *YTHostClient) SendMsg(ctx context.Context, id int32, data []byte) ([]b
 }
 
 func (yc *YTHostClient) Ping(ctx context.Context) bool {
+
 	successChan := make(chan struct{})
 	errorChan := make(chan struct{})
+
+	defer func() {
+		if err := recover(); err != nil {
+			errorChan <- struct{}{}
+		}
+	}()
 
 	go func() {
 		var res string

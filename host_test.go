@@ -1,7 +1,9 @@
 package host_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"fmt"
 	host "github.com/graydream/YTHost"
 	. "github.com/graydream/YTHost/hostInterface"
@@ -346,4 +348,15 @@ func TestStress(t *testing.T) {
 
 	t.Log("success count", successCount)
 	t.Log("error count", errCount)
+}
+
+func TestBytes(t *testing.T) {
+	const x int32 = 0x110
+	buf := bytes.NewBuffer([]byte{})
+	err := binary.Write(buf, binary.BigEndian, x)
+	fmt.Println(err)
+	var x2 int32
+	err = binary.Read(buf, binary.LittleEndian, &x2)
+	fmt.Println(err)
+	fmt.Printf("%x", x2)
 }
