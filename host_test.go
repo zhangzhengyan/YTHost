@@ -284,7 +284,13 @@ func Ping(h Host, i int) bool {
 		return false
 	}
 	defer clt.Close()
-	return clt.Ping(ctx)
+	res, err := clt.SendMsg(ctx, 0x13, []byte{1})
+	if err != nil {
+		return false
+	} else if string(res) != "pong" {
+		return false
+	}
+	return true
 }
 
 func TestTimeout(t *testing.T) {
@@ -309,11 +315,14 @@ func TestTimeout(t *testing.T) {
 
 func TestStress(t *testing.T) {
 	h1 := GetRandomHost()
+	_ = h1.RegisterHandler(0x13, func(requestData []byte, head service.Head) (bytes []byte, e error) {
+		return []byte("pong"), nil
+	})
 	go h1.Accept()
 	errCount := 0
 	successCount := 0
 	const max_count = 2000
-	q := make(chan struct{}, 10)
+	q := make(chan struct{}, 300)
 	wg := sync.WaitGroup{}
 	wg.Add(max_count)
 	for i := 0; i < max_count; i++ {
