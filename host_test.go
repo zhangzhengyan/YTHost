@@ -276,18 +276,21 @@ func TestCS(t *testing.T) {
 func Ping(h Host, i int) bool {
 	ma, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", i+10000))
 	h2 := GetHost(ma)
-	ctx, cancle := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancle := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancle()
 	fmt.Println("开始连接", i)
 	clt, err := h2.Connect(ctx, h.Config().ID, h.Addrs())
 	if err != nil {
+		fmt.Println(err)
 		return false
 	}
 	defer clt.Close()
 	res, err := clt.SendMsg(ctx, 0x13, []byte{1})
 	if err != nil {
+		fmt.Println(err)
 		return false
 	} else if string(res) != "pong" {
+		fmt.Println("error", string(res))
 		return false
 	}
 	return true
@@ -321,8 +324,8 @@ func TestStress(t *testing.T) {
 	go h1.Accept()
 	errCount := 0
 	successCount := 0
-	const max_count = 2000
-	q := make(chan struct{}, 300)
+	const max_count = 20000
+	q := make(chan struct{}, 10000)
 	wg := sync.WaitGroup{}
 	wg.Add(max_count)
 	for i := 0; i < max_count; i++ {

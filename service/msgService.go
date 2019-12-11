@@ -72,7 +72,7 @@ func (ms *MsgService) Ping(req string, res *string) error {
 func (ms *MsgService) HandleMsg(req Request, data *Response) error {
 
 	if ms.Handler == nil {
-		return fmt.Errorf("no handler")
+		return fmt.Errorf("no handler %x", req.MsgId)
 	}
 
 	// 0x0～0x10 为保留全局消息处理器
@@ -99,6 +99,6 @@ func (ms *MsgService) HandleMsg(req Request, data *Response) error {
 			return nil
 		}
 	} else {
-		return fmt.Errorf("no handler")
+		return fmt.Errorf("no handler %x", req.MsgId)
 	}
 }
