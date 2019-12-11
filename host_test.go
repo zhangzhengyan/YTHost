@@ -7,8 +7,6 @@ import (
 	. "github.com/graydream/YTHost/hostInterface"
 	"github.com/graydream/YTHost/option"
 	"github.com/graydream/YTHost/service"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/mr-tron/base58"
 	"github.com/multiformats/go-multiaddr"
 	"math/rand"
 	"testing"
@@ -113,13 +111,7 @@ func TestConnSendPeerInfo(t *testing.T) {
 	peerInfo := clt.RemotePeer()
 
 	// 打印节点信息
-	t.Log(peerInfo.ID.Pretty(), peerInfo.Addrs)
-
-	pkb := clt.RemotePeerPubkey()
-	pk, _ := crypto.UnmarshalPublicKey(pkb)
-	pkb_, _ := pk.Raw()
-	pkb2, _ := hst.Config().Privkey.GetPublic().Raw()
-	t.Log(base58.Encode(pkb_), base58.Encode(pkb2))
+	t.Log(peerInfo.ID.Pretty(), peerInfo.Addrs, clt.RemotePeerPubkey())
 }
 
 // 发送，处理消息
