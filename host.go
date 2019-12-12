@@ -15,7 +15,6 @@ import (
 	mnet "github.com/multiformats/go-multiaddr-net"
 
 	"net/rpc"
-	"sync"
 )
 
 //type Host interface {
@@ -128,42 +127,38 @@ func (hst *host) Addrs() []multiaddr.Multiaddr {
 // Connect 连接远程节点
 func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (*client.YTHostClient, error) {
 	connChan := make(chan mnet.Conn)
-	errorAll := make(chan struct{})
-
-	wg := sync.WaitGroup{}
-	wg.Add(len(mas))
+	errorChan := make(chan error, len(mas))
 
 	for _, addr := range mas {
 		// 发起建立连接
 		go func(ma multiaddr.Multiaddr) {
-			defer wg.Done()
 			if conn, err := mnet.Dial(ma); err == nil {
 				connChan <- conn
+			} else {
+				errorChan <- err
 			}
 		}(addr)
 	}
 
-	// 判断所有连接全部错误
-	go func() {
-		wg.Wait()
-		errorAll <- struct{}{}
-	}()
-
-	select {
-	case conn := <-connChan:
-		clt := rpc.NewClient(conn)
-		ytclt, err := client.WarpClient(clt, &peer.AddrInfo{
-			hst.cfg.ID,
-			hst.Addrs(),
-		}, hst.cfg.Privkey.GetPublic())
-		if err != nil {
-			return nil, err
+	for {
+		select {
+		case conn := <-connChan:
+			clt := rpc.NewClient(conn)
+			ytclt, err := client.WarpClient(clt, &peer.AddrInfo{
+				hst.cfg.ID,
+				hst.Addrs(),
+			}, hst.cfg.Privkey.GetPublic())
+			if err != nil {
+				return nil, err
+			}
+			return ytclt, nil
+		case <-ctx.Done():
+			return nil, fmt.Errorf("ctx time out")
+		default:
+			if len(errorChan) >= len(mas) {
+				return nil, fmt.Errorf("all maddr dail fail")
+			}
 		}
-		return ytclt, nil
-	case <-errorAll:
-		return nil, fmt.Errorf("all maddr dail fail")
-	case <-ctx.Done():
-		return nil, fmt.Errorf("ctx time out")
 	}
 }
 
