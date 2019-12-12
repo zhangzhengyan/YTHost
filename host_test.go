@@ -280,7 +280,7 @@ func Ping(h Host, i int) bool {
 	h2 := GetHost(ma)
 	ctx, cancle := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancle()
-	//fmt.Println("开始连接", i)
+	fmt.Println("开始连接", i)
 	clt, err := h2.Connect(ctx, h.Config().ID, h.Addrs())
 	if err != nil {
 		fmt.Println(err)
@@ -326,8 +326,8 @@ func TestStress(t *testing.T) {
 	go h1.Accept()
 	errCount := 0
 	successCount := 0
-	const max_count = 100
-	q := make(chan struct{}, 10)
+	const max_count = 200
+	q := make(chan struct{}, 200)
 	wg := sync.WaitGroup{}
 	wg.Add(max_count)
 	for i := 0; i < max_count; i++ {

@@ -7,11 +7,13 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/mr-tron/base58"
 	"github.com/multiformats/go-multiaddr"
+	"sync"
 )
 
 type ClientStore struct {
 	psmap   map[peer.ID]*client.YTHostClient
 	connect func(ctx context.Context, id peer.ID, mas []multiaddr.Multiaddr) (*client.YTHostClient, error)
+	sync.RWMutex
 }
 
 // Get 获取一个客户端，如果没有，建立新的客户端连接
@@ -36,13 +38,18 @@ start:
 		return nil, fmt.Errorf("Maximum attempts %d ", max_try_count)
 	}
 
+	cs.RLock()
 	c, ok := cs.psmap[pid]
+	cs.RUnlock()
 	// 如果不存在创建新的clt
 	if !ok || c.IsClosed() {
 		if clt, err := cs.connect(ctx, pid, mas); err != nil {
 			return nil, err
 		} else {
+
+			cs.Lock()
 			cs.psmap[pid] = clt
+			cs.Unlock()
 			// 创建clt完成后返回到开始
 			goto start
 		}
@@ -106,5 +113,6 @@ func NewClientStore(connFunc func(ctx context.Context, id peer.ID, mas []multiad
 	return &ClientStore{
 		make(map[peer.ID]*client.YTHostClient),
 		connFunc,
+		sync.RWMutex{},
 	}
 }
