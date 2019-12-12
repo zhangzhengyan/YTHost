@@ -280,7 +280,7 @@ func Ping(h Host, i int) bool {
 	h2 := GetHost(ma)
 	ctx, cancle := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancle()
-	fmt.Println("开始连接", i)
+	//fmt.Println("开始连接", i)
 	clt, err := h2.Connect(ctx, h.Config().ID, h.Addrs())
 	if err != nil {
 		fmt.Println(err)
@@ -326,8 +326,8 @@ func TestStress(t *testing.T) {
 	go h1.Accept()
 	errCount := 0
 	successCount := 0
-	const max_count = 20000
-	q := make(chan struct{}, 10000)
+	const max_count = 100
+	q := make(chan struct{}, 10)
 	wg := sync.WaitGroup{}
 	wg.Add(max_count)
 	for i := 0; i < max_count; i++ {
@@ -359,56 +359,4 @@ func TestBytes(t *testing.T) {
 	err = binary.Read(buf, binary.LittleEndian, &x2)
 	fmt.Println(err)
 	fmt.Printf("%x", x2)
-}
-
-func TestCtx(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*3500)
-	defer cancel()
-	go func(ctx context.Context) {
-		select {
-		case <-ctx.Done():
-			fmt.Println(1)
-			return
-		default:
-			i := 0
-			for {
-				i++
-				fmt.Println("i:", i)
-				<-time.After(time.Second)
-			}
-		}
-	}(ctx)
-	go func(ctx context.Context) {
-		i2 := 0
-		for {
-			select {
-			case <-ctx.Done():
-				fmt.Println(2)
-				return
-			default:
-				i2++
-				fmt.Println("i2:", i2)
-				<-time.After(time.Second)
-			}
-		}
-	}(ctx)
-
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				fmt.Println(4)
-				return
-			default:
-				<-time.After(time.Second * 4)
-				return
-			}
-		}
-	}()
-	select {
-	case <-ctx.Done():
-		fmt.Println(3)
-		//return
-	}
-	select {}
 }

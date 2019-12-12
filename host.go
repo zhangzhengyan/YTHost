@@ -136,32 +136,17 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 	for _, addr := range mas {
 		// 发起建立连接
 		go func(ma multiaddr.Multiaddr) {
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				default:
-					if conn, err := mnet.Dial(ma); err != nil {
-						wg.Done()
-					} else {
-						connChan <- conn
-					}
-				}
+			defer wg.Done()
+			if conn, err := mnet.Dial(ma); err == nil {
+				connChan <- conn
 			}
 		}(addr)
 	}
 
 	// 判断所有连接全部错误
 	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				wg.Wait()
-				errorAll <- struct{}{}
-			}
-		}
+		wg.Wait()
+		errorAll <- struct{}{}
 	}()
 
 	select {
