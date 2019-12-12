@@ -360,3 +360,42 @@ func TestBytes(t *testing.T) {
 	fmt.Println(err)
 	fmt.Printf("%x", x2)
 }
+
+func TestCtx(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*3500)
+	defer cancel()
+	go func(ctx context.Context) {
+		select {
+		case <-ctx.Done():
+			fmt.Println(1)
+			return
+		default:
+			i := 0
+			for {
+				i++
+				fmt.Println("i:", i)
+				<-time.After(time.Second)
+			}
+		}
+	}(ctx)
+	go func(ctx context.Context) {
+		i2 := 0
+		for {
+			select {
+			case <-ctx.Done():
+				fmt.Println(2)
+				return
+			default:
+				i2++
+				fmt.Println("i2:", i2)
+				<-time.After(time.Second)
+			}
+		}
+	}(ctx)
+	select {
+	case <-ctx.Done():
+		fmt.Println(3)
+		//return
+	}
+	select {}
+}
