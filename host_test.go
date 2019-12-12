@@ -351,7 +351,7 @@ func TestStress(t *testing.T) {
 }
 
 func TestBytes(t *testing.T) {
-	const x int32 = 0x110
+	const x int32 = 0x2333
 	buf := bytes.NewBuffer([]byte{})
 	err := binary.Write(buf, binary.BigEndian, x)
 	fmt.Println(err)

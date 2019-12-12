@@ -91,11 +91,15 @@ func (cs *ClientStore) GetByAddrString(ctx context.Context, id string, addrs []s
 
 // Close 关闭一个客户端
 func (cs *ClientStore) Close(pid peer.ID) error {
+	cs.RLock()
 	clt, ok := cs.psmap[pid]
+	cs.RUnlock()
 	if !ok {
 		return fmt.Errorf("no find client ID is %s", pid.Pretty())
 	}
+	cs.Lock()
 	delete(cs.psmap, pid)
+	cs.Unlock()
 	return clt.Close()
 }
 
