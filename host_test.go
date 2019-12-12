@@ -392,6 +392,19 @@ func TestCtx(t *testing.T) {
 			}
 		}
 	}(ctx)
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				fmt.Println(4)
+				return
+			default:
+				<-time.After(time.Second * 4)
+				return
+			}
+		}
+	}()
 	select {
 	case <-ctx.Done():
 		fmt.Println(3)
