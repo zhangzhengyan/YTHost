@@ -56,7 +56,9 @@ start:
 	} else {
 		// 如果已存在clt无法ping通,删除记录重新创建
 		if !c.Ping(ctx) {
+			cs.Lock()
 			delete(cs.psmap, pid)
+			cs.Unlock()
 			goto start
 		}
 	}
