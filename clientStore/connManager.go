@@ -27,6 +27,9 @@ func (cs *ClientStore) Get(ctx context.Context, pid peer.ID, mas []multiaddr.Mul
 }
 
 func (cs *ClientStore) get(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (*client.YTHostClient, error) {
+	cs.Lock()
+	defer cs.Unlock()
+
 	// 尝试次数
 	var tryCount int
 	const max_try_count = 5
@@ -37,28 +40,21 @@ start:
 	if tryCount++; tryCount > max_try_count {
 		return nil, fmt.Errorf("Maximum attempts %d ", max_try_count)
 	}
-
-	cs.RLock()
 	c, ok := cs.psmap[pid]
-	cs.RUnlock()
 	// 如果不存在创建新的clt
 	if !ok || c.IsClosed() {
 		if clt, err := cs.connect(ctx, pid, mas); err != nil {
 			return nil, err
 		} else {
 
-			cs.Lock()
 			cs.psmap[pid] = clt
-			cs.Unlock()
 			// 创建clt完成后返回到开始
 			goto start
 		}
 	} else {
 		// 如果已存在clt无法ping通,删除记录重新创建
 		if !c.Ping(ctx) {
-			cs.Lock()
 			delete(cs.psmap, pid)
-			cs.Unlock()
 			goto start
 		}
 	}
@@ -80,6 +76,10 @@ func (cs *ClientStore) GetByAddrString(ctx context.Context, id string, addrs []s
 		}
 		mas[k] = ma
 	}
+
+	cs.Lock()
+	defer cs.Unlock()
+
 	c, ok := cs.psmap[pid]
 	if !ok || c.IsClosed() {
 		if clt, err := cs.connect(ctx, pid, mas); err != nil {
@@ -88,30 +88,38 @@ func (cs *ClientStore) GetByAddrString(ctx context.Context, id string, addrs []s
 			cs.psmap[pid] = clt
 		}
 	}
-	return cs.psmap[pid], nil
+
+	c = cs.psmap[pid]
+	return c, nil
 }
 
 // Close 关闭一个客户端
 func (cs *ClientStore) Close(pid peer.ID) error {
-	cs.RLock()
+	cs.Lock()
+	defer cs.Unlock()
+
 	clt, ok := cs.psmap[pid]
-	cs.RUnlock()
 	if !ok {
 		return fmt.Errorf("no find client ID is %s", pid.Pretty())
 	}
-	cs.Lock()
+
 	delete(cs.psmap, pid)
-	cs.Unlock()
 	return clt.Close()
 }
 
 func (cs *ClientStore) GetClient(pid peer.ID) (*client.YTHostClient, bool) {
+	cs.RLock()
+	defer cs.RUnlock()
+
 	clt, ok := cs.psmap[pid]
 	return clt, ok
 }
 
 // Len 返回当前连接数
 func (cs *ClientStore) Len() int {
+	cs.RLock()
+	defer cs.RUnlock()
+
 	return len(cs.psmap)
 }
 
