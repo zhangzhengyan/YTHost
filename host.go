@@ -13,8 +13,12 @@ import (
 	"github.com/mr-tron/base58"
 	"github.com/multiformats/go-multiaddr"
 	mnet "github.com/multiformats/go-multiaddr-net"
-
+	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"net/rpc"
+	"sync"
+	"time"
 )
 
 //type Host interface {
@@ -56,6 +60,17 @@ func NewHost(options ...option.Option) (*host, error) {
 	hst.HandlerMap = make(service.HandlerMap)
 
 	hst.clientStore = clientStore.NewClientStore(hst.Connect)
+
+	if hst.cfg.PProf != "" {
+		go func() {
+			if err := http.ListenAndServe(hst.cfg.PProf, nil); err != nil {
+				fmt.Println("PProf open fail:", err)
+			} else {
+				fmt.Println("PProf debug open:", hst.cfg.PProf)
+			}
+		}()
+	}
+
 	return hst, nil
 }
 
@@ -67,6 +82,7 @@ func (hst *host) Accept() {
 
 	msgService := new(service.MsgService)
 	msgService.Handler = hst.HandlerMap
+	msgService.LocalPriKey = hst.cfg.Privkey
 	msgService.Pi = peerInfo.PeerInfo{hst.cfg.ID, hst.Addrs()}
 
 	if err := hst.srv.RegisterName("as", addrService); err != nil {
@@ -126,38 +142,60 @@ func (hst *host) Addrs() []multiaddr.Multiaddr {
 
 // Connect 连接远程节点
 func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (*client.YTHostClient, error) {
+
+	conn, err := hst.connect(ctx, pid, mas)
+	if err != nil {
+		return nil, err
+	}
+
+	err = conn.SetDeadline(time.Now().Add(time.Second * 60))
+	if err != nil {
+		return nil, err
+	}
+	clt := rpc.NewClient(conn)
+	ytclt, err := client.WarpClient(clt, &peer.AddrInfo{
+		hst.cfg.ID,
+		hst.Addrs(),
+	}, hst.cfg.Privkey.GetPublic(), conn)
+	if err != nil {
+		return nil, err
+	}
+	return ytclt, nil
+}
+
+func (hst *host) connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (mnet.Conn, error) {
 	connChan := make(chan mnet.Conn)
-	errorChan := make(chan error, len(mas))
+	errChan := make(chan error)
+	wg := sync.WaitGroup{}
+	wg.Add(len(mas))
+
+	go func() {
+		wg.Wait()
+		errChan <- fmt.Errorf("dail all maddr fail")
+	}()
 
 	for _, addr := range mas {
-		// 发起建立连接
-		go func(ma multiaddr.Multiaddr) {
-			if conn, err := mnet.Dial(ma); err == nil {
+		go func(addr multiaddr.Multiaddr) {
+			defer wg.Done()
+			if conn, err := (&mnet.Dialer{}).DialContext(ctx, addr); err == nil {
 				connChan <- conn
 			} else {
-				errorChan <- err
+				if hst.cfg.Debug {
+					log.Println("conn error:", err)
+				}
 			}
 		}(addr)
 	}
 
 	for {
 		select {
-		case conn := <-connChan:
-			clt := rpc.NewClient(conn)
-			ytclt, err := client.WarpClient(clt, &peer.AddrInfo{
-				hst.cfg.ID,
-				hst.Addrs(),
-			}, hst.cfg.Privkey.GetPublic())
-			if err != nil {
-				return nil, err
-			}
-			return ytclt, nil
 		case <-ctx.Done():
-			return nil, fmt.Errorf("ctx time out")
-		default:
-			if len(errorChan) >= len(mas) {
-				return nil, fmt.Errorf("all maddr dail fail")
-			}
+			return nil, fmt.Errorf("ctx quit")
+		case conn := <-connChan:
+			return conn, nil
+
+		case err := <-errChan:
+			return nil, err
 		}
 	}
 }

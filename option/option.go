@@ -22,3 +22,15 @@ func Identity(key crypto.PrivKey) Option {
 		cfg.ID = id
 	}
 }
+
+func OpenPProf(addr string) Option {
+	return func(cfg *config.Config) {
+		cfg.PProf = addr
+	}
+}
+
+func OpenDebug() Option {
+	return func(cfg *config.Config) {
+		cfg.Debug = true
+	}
+}
