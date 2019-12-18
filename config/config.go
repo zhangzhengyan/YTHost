@@ -12,6 +12,8 @@ type Config struct {
 	ListenAddr ma.Multiaddr
 	Privkey    crypto.PrivKey
 	ID         peer.ID
+	Debug      bool
+	PProf      string
 }
 
 func NewConfig() *Config {
@@ -25,5 +27,8 @@ func newConfig(cfg *Config) *Config {
 	id, _ := peer.IDFromPrivateKey(pi)
 	cfg.ID = id
 	cfg.Privkey = pi
+	cfg.Debug = false
+	cfg.PProf = ""
+
 	return cfg
 }
