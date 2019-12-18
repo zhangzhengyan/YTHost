@@ -2,11 +2,18 @@ package client
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
+	"github.com/graydream/YTHost/encrypt"
 	"github.com/graydream/YTHost/service"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/mr-tron/base58"
 	"github.com/multiformats/go-multiaddr"
+	"github.com/yottachain/YTCrypto"
+	"golang.org/x/crypto/ripemd160"
+	"net"
+	"time"
 
 	"net/rpc"
 )
@@ -17,6 +24,8 @@ type YTHostClient struct {
 	localPeerAddrs  []string
 	localPeerPubKey []byte
 	isClosed        bool
+	conn            net.Conn
+	msgPriKey		[]byte
 }
 
 func (yc *YTHostClient) RemotePeer() peer.AddrInfo {
@@ -41,7 +50,7 @@ func (yc *YTHostClient) RemotePeerPubkey() crypto.PubKey {
 	if err := yc.Call("as.RemotePeerInfo", "", &pi); err != nil {
 		fmt.Println(err)
 	}
-	pk, _ := crypto.UnmarshalSecp256k1PublicKey(pi.PubKey)
+	pk, _ := crypto.UnmarshalPublicKey(pi.PubKey)
 	return pk
 }
 
@@ -55,20 +64,69 @@ func (yc *YTHostClient) LocalPeer() peer.AddrInfo {
 	return pi
 }
 
-func WarpClient(clt *rpc.Client, pi *peer.AddrInfo, pk crypto.PubKey) (*YTHostClient, error) {
+func (yc *YTHostClient) SendMsgPriKey() (error) {
+	pk, _ := yc.RemotePeerPubkey().Raw()
+	msgkey := yc.msgPriKey
+
+	//fmt.Printf("client gen prikey is %s\n", base58.Encode(msgkey))
+
+	hasher := ripemd160.New()
+	hasher.Write(pk)
+	sum := hasher.Sum(nil)
+	pk = append(pk, sum[0:4]...)
+
+	pkstr := base58.Encode(pk)
+
+	//fmt.Printf("peer publickey is %s\n", pkstr)
+
+	//加密
+	cipherKkey, err := YTCrypto.ECCEncrypt(msgkey, pkstr)
+	if err != nil {
+		return err
+	}
+
+	args := service.IdToMsgPriKey{
+		ID: yc.localPeerID,
+		MsgPriKey:   cipherKkey,
+	}
+
+	res := false
+	if err := yc.Call("ms.RegisterMsgPriKey", args, &res); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func WarpClient(clt *rpc.Client, pi *peer.AddrInfo, pk crypto.PubKey, conn net.Conn) (*YTHostClient, error) {
 	var yc = new(YTHostClient)
 	yc.Client = clt
 	yc.localPeerID = pi.ID
 	yc.localPeerPubKey, _ = pk.Raw()
+	yc.conn = conn
+
+	//gener current session msg pri key
+	msgprikey, _, _ := crypto.GenerateSecp256k1Key(rand.Reader)
+	prikey,_ := msgprikey.Raw()
+	yc.msgPriKey =  prikey
+
 	for _, v := range pi.Addrs {
 		yc.localPeerAddrs = append(yc.localPeerAddrs, v.String())
 	}
 	yc.isClosed = false
 
+	err := yc.SendMsgPriKey()
+	if err != nil {
+		return nil, err
+	}
+
 	return yc, nil
 }
 
 func (yc *YTHostClient) SendMsg(ctx context.Context, id int32, data []byte) ([]byte, error) {
+	if err := yc.conn.SetDeadline(time.Now().Add(time.Second * 60)); err != nil {
+		return nil, err
+	}
 
 	resChan := make(chan service.Response)
 	errChan := make(chan error)
@@ -79,12 +137,23 @@ func (yc *YTHostClient) SendMsg(ctx context.Context, id int32, data []byte) ([]b
 		}
 	}()
 
+	aesKey := yc.msgPriKey
+
+	//fmt.Printf("secret key [%s] ------>  before at aes msg: [%s]\n", base58.Encode(aesKey), string(data))
+
+	aesData, err := encrypt.AesCBCEncrypt(data, aesKey)
+	if err != nil {
+		return nil, err
+	}
+
+	//fmt.Printf("after at aes data: %s\n", string(aesData))
+
 	go func() {
 		var res service.Response
 
 		pi := service.PeerInfo{yc.localPeerID, yc.localPeerAddrs, yc.localPeerPubKey}
 
-		if err := yc.Call("ms.HandleMsg", service.Request{id, data, pi}, &res); err != nil {
+		if err := yc.Call("ms.HandleMsg", service.Request{id, aesData, pi}, &res); err != nil {
 			errChan <- err
 		} else {
 			resChan <- res
