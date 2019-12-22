@@ -14,6 +14,7 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"math/rand"
 	"net"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -122,7 +123,7 @@ func TestConnSendPeerInfo(t *testing.T) {
 	peerInfo := clt.RemotePeer()
 
 	// 打印节点信息
-	t.Log(peerInfo.ID.Pretty(), peerInfo.Addrs, clt.RemotePeerPubkey())
+	t.Log(peerInfo.ID.Pretty(), peerInfo.Addrs)
 }
 
 // 发送，处理消息
@@ -670,6 +671,7 @@ func TestStressConn3(t *testing.T) {
 //测试多连接消息加密
 func TestMutlConnCrypt(t *testing.T) {
 	mastr := fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 9000)
+
 	ma, _ := multiaddr.NewMultiaddr(mastr)
 	hst, err := host.NewHost(option.ListenAddr(ma))
 	if err != nil {
@@ -686,7 +688,7 @@ func TestMutlConnCrypt(t *testing.T) {
 
 	go hst.Accept()
 
-	lenth := 5
+	lenth := 1
 	hstcSilce := make([]Host, lenth)
 	connSilce := make([]*client.YTHostClient, lenth)
 
@@ -694,8 +696,10 @@ func TestMutlConnCrypt(t *testing.T) {
 		j := i
 		port := 19000 + j + 1
 		mastr := fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port)
+
 		ma, _ := multiaddr.NewMultiaddr(mastr)
 		hstcSilce[j], err = host.NewHost(option.ListenAddr(ma))
+		go hstcSilce[j].Accept()
 		if err != nil {
 			hstcSilce[j] = nil
 			continue
@@ -703,6 +707,11 @@ func TestMutlConnCrypt(t *testing.T) {
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
+		/*mastr = "/ip4/127.0.0.1/tcp/9000/p2p/" + hst.Config().ID.String() + "/p2p-circuit/"
+		maddrs := make([]multiaddr.Multiaddr, 1)
+		maddrs[0], err = multiaddr.NewMultiaddr(mastr)
+		connSilce[j], err = hstcSilce[j].Connect(ctx, hst.Config().ID, maddrs)*/
+
 		connSilce[j], err = hstcSilce[j].Connect(ctx, hst.Config().ID, hst.Addrs())
 		if err != nil {
 			t.Log(err.Error())
@@ -738,4 +747,109 @@ func TestMutlConnCrypt(t *testing.T) {
 	/*for {
 		time.Sleep(time.Second*1)
 	}*/
+}
+
+func TestStrSplit(t *testing.T){
+	str := "/ip4/152.136.198.134/tcp/9001/p2p/16Uiu2HAm3txKmVThw2xVge7vqV2zhev4nd1m2Tt9cQV1pbUxh4HJ/p2p-circuit/"
+	multiaddr.StringCast(str)
+	strSplics := strings.Split(str, "/")
+	dStr := "/"
+	for i, v := range strSplics {
+		if "" != v  {
+			if "p2p" == v {
+				break
+			}
+			fmt.Println(i, v)
+			dStr = dStr + v + "/"
+		}
+	}
+	//dStr = "/" + dStr
+	fmt.Println(dStr)
+}
+
+func TestRelayTransMsg(t *testing.T){
+	mastr := fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 9000)
+	ma, _ := multiaddr.NewMultiaddr(mastr)
+	hst1, err := host.NewHost(option.ListenAddr(ma), option.OpenPProf("127.0.0.1:8888"))
+	if err != nil {
+		panic(err)
+	}
+
+	go hst1.Accept()
+
+	mastr = fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 9001)
+	ma, _ = multiaddr.NewMultiaddr(mastr)
+	hst2, err := host.NewHost(option.ListenAddr(ma), option.OpenPProf("127.0.0.1:8889"))
+	if err != nil {
+		panic(err)
+	}
+
+	go hst2.Accept()
+
+	/*mastr = fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 9002)
+	ma, _ = multiaddr.NewMultiaddr(mastr)
+	hst3, err := host.NewHost(option.ListenAddr(ma))
+	if err != nil {
+		panic(err)
+	}*/
+
+	/*go hst3.Accept()
+
+	hst3.RegisterGlobalMsgHandler(func(requestData []byte, head service.Head) (bytes []byte, e error) {
+		fmt.Println(fmt.Sprintf("msg is [%s]", string(requestData)))
+		return []byte("receice----------------------succeed!"), nil
+	})*/
+
+	hst2.RegisterGlobalMsgHandler(func(requestData []byte, head service.Head) (bytes []byte, e error) {
+		fmt.Println(fmt.Sprintf("msg is [%s]", string(requestData)))
+		return []byte("receice----------------------succeed!"), nil
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*6)
+	defer cancel()
+	fmt.Println(hst1.Config().ID.String())
+	fmt.Println(hst2.Config().ID.String())
+	clt, err := hst1.Connect(ctx, hst2.Config().ID, hst2.Addrs())
+	if nil != err {
+		//panic(err)
+	}
+
+	ctx1, cancel1 := context.WithTimeout(context.Background(), time.Second*60)
+	defer cancel1()
+	ret, err := clt.SendMsg(ctx1, 0x0, []byte("ni hao xiao huo ban"))
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(string(ret))
+	}
+
+	//_, err = hst3.Connect(ctx, hst2.Config().ID, hst2.Addrs())
+	//if nil != err {
+	//	panic(err)
+	//}
+
+	//mastr = "/ip4/127.0.0.1/tcp/9001/p2p/" + hst2.Config().ID.String() + "/p2p-circuit/"
+	//maddrs := make([]multiaddr.Multiaddr, 1)
+	//maddrs[0], err = multiaddr.NewMultiaddr(mastr)
+	//clt, err := hst1.Connect(ctx, hst3.Config().ID, hst3.Addrs())
+	//_, err = hst1.Connect(ctx, hst3.Config().ID, hst3.Addrs())
+	//if nil != err {
+	//	panic(err)
+	//}
+
+	/*ctx1, cancel1 := context.WithTimeout(context.Background(), time.Second*60)
+	defer cancel1()
+	ret, err := clt.SendMsg(ctx1, 0x0, []byte("ni hao xiao huo ban"))
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(string(ret))
+	}*/
+
+
+	for{
+		time.Sleep(time.Second*60)
+		break
+	}
+
 }

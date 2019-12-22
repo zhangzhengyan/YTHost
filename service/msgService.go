@@ -59,13 +59,17 @@ type MsgService struct {
 	Handler HandlerMap
 	Pi      peerInfo.PeerInfo
 	LocalPriKey crypto.PrivKey
-	sync.Map
+	msgPriMap *sync.Map
+	//ClientStore *clientStore.ClientStore
+	LocalPeerID peer.ID
 }
 
 type Request struct {
 	MsgId          int32
 	ReqData        []byte
 	RemotePeerInfo PeerInfo
+	//目标的peer ID 对中继来说 如果和自己的ID不匹配则转发
+	DstID			peer.ID
 }
 
 type Response struct {
@@ -83,17 +87,12 @@ func (ms *MsgService) Ping(req string, res *string) error {
 }
 
 func (ms *MsgService) RegisterMsgPriKey(clinetMsgKey IdToMsgPriKey, res *bool) error {
+	ms.msgPriMapinit()
+
 	hostPriKey, _ := ms.LocalPriKey.Raw()
 
 	peerId := clinetMsgKey.ID
 	msgPriKey := clinetMsgKey.MsgPriKey
-
-	/*pr, err := base58.Decode(base58.Encode(hostPriKey))
-	if err == nil {
-		pr = append([]byte{0x80}, pr[0:32]...)
-	} else {
-		return err
-	}*/
 
 	pr := append([]byte{0x80}, hostPriKey[0:32]...)
 
@@ -105,13 +104,14 @@ func (ms *MsgService) RegisterMsgPriKey(clinetMsgKey IdToMsgPriKey, res *bool) e
 
 	//fmt.Printf("server recive client gen prikey is %s\n", base58.Encode(finalMsgPriKey))
 
-	ms.Map.Store(peerId, finalMsgPriKey)
+	ms.msgPriMap.Store(peerId, finalMsgPriKey)
 	*res = true
 
 	return nil
 }
 
 func (ms *MsgService) HandleMsg(req Request, data *Response) error {
+	ms.msgPriMapinit()
 
 	if ms.Handler == nil {
 		return fmt.Errorf("no handler %x", req.MsgId)
@@ -133,7 +133,8 @@ func (ms *MsgService) HandleMsg(req Request, data *Response) error {
 		head.RemoteAddrs = append(head.RemoteAddrs, ma)
 	}
 
-	_k, ok := ms.Map.Load(head.RemotePeerID)
+	//解密消息
+	_k, ok := ms.msgPriMap.Load(head.RemotePeerID)
 	if !ok {
 		return fmt.Errorf("no msgPriKey %x", head.RemotePeerID)
 	}
@@ -148,6 +149,18 @@ func (ms *MsgService) HandleMsg(req Request, data *Response) error {
 
 	//fmt.Printf("secret key [%s] ---------> after at aes decode msg is [%s]\n", base58.Encode(msgKey), string(reqData))
 
+	//目标ID不是自己的ID就转发出去
+	if req.DstID != ms.LocalPeerID {
+		fmt.Printf("relay ID:[%x] transpond peer Id:[%x] msg:[%s]", ms.LocalPeerID, req.DstID, string(reqData))
+		//resdata, err := ms.transpondMsg(req.DstID, req.MsgId, reqData)
+		resdata, err := ms.transpondMsg()
+		if nil != err {
+			return err
+		}
+		data.Data = resdata
+		return nil
+	}
+
 	if ok {
 		if resdata, err := h(reqData, head); err != nil {
 			return nil
@@ -158,4 +171,28 @@ func (ms *MsgService) HandleMsg(req Request, data *Response) error {
 	} else {
 		return fmt.Errorf("no handler %x", req.MsgId)
 	}
+}
+
+func (ms *MsgService)msgPriMapinit(){
+	if ms.msgPriMap == nil {
+		ms.msgPriMap = &sync.Map{}
+	}
+}
+
+func (ms *MsgService) transpondMsg() ([]byte, error){
+/*func (ms *MsgService) transpondMsg(DstID peer.ID, msgId int32, msg []byte) ([]byte, error){
+	_c, ok := ms.ClientStore.Load(DstID)
+
+	if !ok {
+		return nil, fmt.Errorf("relay not connect with peer ID: [%x]\n", DstID)
+	}
+	c := _c.(*client.YTHostClient)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
+	defer cancel()
+	retData, err := c.SendMsg(ctx, msgId, msg)
+	if nil != err {
+		return nil, fmt.Errorf("relay send msg to peer ID: [%x] fail\n", DstID)
+	}
+	return  retData, nil*/
+	return nil, nil
 }

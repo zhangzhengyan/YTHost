@@ -8,7 +8,8 @@ import (
 	"github.com/graydream/YTHost/service"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
-	"net/rpc"
+	//"net/rpc"
+	"github.com/graydream/YTHost/rpc"
 )
 
 type Host interface {
