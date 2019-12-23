@@ -5,7 +5,7 @@ import (
 	ra "crypto/rand"
 	"fmt"
 	host "github.com/graydream/YTHost"
-	"github.com/graydream/YTHost/client"
+	ci "github.com/graydream/YTHost/clientInterface"
 	. "github.com/graydream/YTHost/hostInterface"
 	"github.com/graydream/YTHost/option"
 	"github.com/graydream/YTHost/service"
@@ -86,18 +86,9 @@ func TestConn(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
-	clt, err := hst2.Connect(ctx, hst.Config().ID, hst.Addrs())
+	_, err := hst2.Connect(ctx, hst.Config().ID, hst.Addrs())
 	if err != nil {
 		t.Fatal(err.Error())
-	}
-
-	var res Reply
-
-	// 调用远程接口
-	if err := clt.Call("RpcService.Test", "", &res); err != nil {
-		t.Fatal(err)
-	} else {
-		t.Log(res.Value)
 	}
 
 }
@@ -321,7 +312,7 @@ func TestMutlConn(t *testing.T) {
 
 	lenth := 5000
 	hstcSilce := make([]Host, lenth)
-	connSilce := make([]*client.YTHostClient, lenth)
+	connSilce := make([]ci.YTHClient, lenth)
 	//wg := sync.WaitGroup{}
 	//wg.Add(lenth)
 
@@ -350,7 +341,7 @@ func TestMutlConn(t *testing.T) {
 
 		ctx1, cancel1 := context.WithCancel(context.Background())
 		defer cancel1()
-		go func(ctx context.Context, conn **client.YTHostClient, index int) (error) {
+		go func(ctx context.Context, conn *ci.YTHClient, index int) (error) {
 			for {
 				select {
 				case <-ctx.Done():
@@ -445,7 +436,7 @@ func TestMutlConn111(t *testing.T) {
 
 	lenth := 5000
 	//hstcSilce := make([]Host, lenth)
-	connSilce := make([]*client.YTHostClient, lenth)
+	connSilce := make([]ci.YTHClient, lenth)
 
 	for k,_:=range connSilce{
 		ma,_:=multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d",13000+k))
@@ -501,7 +492,7 @@ func TestMutlconcurrentConn(t *testing.T) {
 
 	lenth := 50
 	hstcSilce := make([]Host, lenth)
-	connSilce := make([]*client.YTHostClient, lenth)
+	connSilce := make([]ci.YTHClient, lenth)
 
 	for i := 0; i < lenth; i++ {
 		j := i
@@ -535,7 +526,7 @@ func TestMutlconcurrentConn(t *testing.T) {
 
 		for j := i; j < i + stepSize; j++ {
 			idx := j
-			go func(conn **client.YTHostClient, host *Host){
+			go func(conn *ci.YTHClient, host *Host){
 				defer wg.Done()
 				ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 				defer cancel()
@@ -690,7 +681,7 @@ func TestMutlConnCrypt(t *testing.T) {
 
 	lenth := 1
 	hstcSilce := make([]Host, lenth)
-	connSilce := make([]*client.YTHostClient, lenth)
+	connSilce := make([]ci.YTHClient, lenth)
 
 	for i := 0; i < lenth; i++ {
 		j := i
@@ -732,7 +723,7 @@ func TestMutlConnCrypt(t *testing.T) {
 
 			//fmt.Println(keystr)		//发送的消息
 
-			ret, err := (*conn).SendMsg(ctx_local, 0x0, []byte(msgstr))
+			ret, err := (conn).SendMsg(ctx_local, 0x0, []byte(msgstr))
 			if err != nil {
 				fmt.Println(err)
 			} else {
@@ -786,66 +777,110 @@ func TestRelayTransMsg(t *testing.T){
 
 	go hst2.Accept()
 
-	/*mastr = fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 9002)
+	mastr = fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 9002)
 	ma, _ = multiaddr.NewMultiaddr(mastr)
 	hst3, err := host.NewHost(option.ListenAddr(ma))
 	if err != nil {
 		panic(err)
-	}*/
+	}
 
-	/*go hst3.Accept()
+	go hst3.Accept()
 
 	hst3.RegisterGlobalMsgHandler(func(requestData []byte, head service.Head) (bytes []byte, e error) {
-		fmt.Println(fmt.Sprintf("msg is [%s]", string(requestData)))
-		return []byte("receice----------------------succeed!"), nil
-	})*/
+		fmt.Println(fmt.Sprintf("msg is [%s]\n", string(requestData)))
+		return []byte("receice----hst3-----hst3------hst3-------succeed!"), nil
+	})
 
 	hst2.RegisterGlobalMsgHandler(func(requestData []byte, head service.Head) (bytes []byte, e error) {
 		fmt.Println(fmt.Sprintf("msg is [%s]", string(requestData)))
-		return []byte("receice----------------------succeed!"), nil
+		return []byte("receice----hst2------hst2------hst2------succeed!"), nil
 	})
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*6)
-	defer cancel()
 	fmt.Println(hst1.Config().ID.String())
 	fmt.Println(hst2.Config().ID.String())
-	clt, err := hst1.Connect(ctx, hst2.Config().ID, hst2.Addrs())
+	fmt.Println(hst3.Config().ID.String())
+	fmt.Println()
+	fmt.Println()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
+	defer cancel()
+	//_, err = hst1.ClientStore(ctx, hst2.Config().ID, hst2.Addrs())
+	_, err = hst1.ClientStore().Get(ctx, hst2.Config().ID, hst2.Addrs())
 	if nil != err {
-		//panic(err)
+		panic(err)
 	}
 
-	ctx1, cancel1 := context.WithTimeout(context.Background(), time.Second*60)
-	defer cancel1()
-	ret, err := clt.SendMsg(ctx1, 0x0, []byte("ni hao xiao huo ban"))
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Println(string(ret))
+
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second*60)
+	defer cancel()
+	_, err = hst3.ClientStore().Get(ctx, hst2.Config().ID, hst2.Addrs())
+	if nil != err {
+		panic(err)
 	}
 
-	//_, err = hst3.Connect(ctx, hst2.Config().ID, hst2.Addrs())
-	//if nil != err {
-	//	panic(err)
-	//}
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second*60)
+	defer cancel()
+	_, err = hst1.ClientStore().Get(ctx, hst3.Config().ID, hst3.Addrs())
+	if nil != err {
+		panic(err)
+	}
 
-	//mastr = "/ip4/127.0.0.1/tcp/9001/p2p/" + hst2.Config().ID.String() + "/p2p-circuit/"
-	//maddrs := make([]multiaddr.Multiaddr, 1)
-	//maddrs[0], err = multiaddr.NewMultiaddr(mastr)
-	//clt, err := hst1.Connect(ctx, hst3.Config().ID, hst3.Addrs())
-	//_, err = hst1.Connect(ctx, hst3.Config().ID, hst3.Addrs())
-	//if nil != err {
-	//	panic(err)
-	//}
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second*60)
+	defer cancel()
+	_, err = hst2.ClientStore().Get(ctx, hst3.Config().ID, hst3.Addrs())
+	if nil != err {
+		panic(err)
+	}
 
-	/*ctx1, cancel1 := context.WithTimeout(context.Background(), time.Second*60)
-	defer cancel1()
-	ret, err := clt.SendMsg(ctx1, 0x0, []byte("ni hao xiao huo ban"))
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Println(string(ret))
-	}*/
+	mastr = "/ip4/127.0.0.1/tcp/9001/p2p/" + hst3.Config().ID.String() + "/p2p-circuit/"
+	maddrs := make([]multiaddr.Multiaddr, 1)
+	maddrs[0], err = multiaddr.NewMultiaddr(mastr)
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second*60)
+	defer cancel()
+	clt1, err := hst1.ClientStore().Get(ctx, hst3.Config().ID, maddrs)
+	if nil != err {
+		panic(err)
+	}
 
+	mastr = "/ip4/127.0.0.1/tcp/9002/p2p/" + hst3.Config().ID.String() + "/p2p-circuit/"
+	maddrs = make([]multiaddr.Multiaddr, 1)
+	maddrs[0], err = multiaddr.NewMultiaddr(mastr)
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second*60)
+	defer cancel()
+	clt2, err := hst1.ClientStore().Get(ctx, hst2.Config().ID, maddrs)
+	if nil != err {
+		panic(err)
+	}
+
+	for i := 0; i < 1000; i++ {
+		ctx1, cancel1 := context.WithTimeout(context.Background(), time.Second*60)
+		defer cancel1()
+		msg1 := []byte("d22222222askfjpqejwogeoqnbqdkjdkjklajfdljfalksjfkjdsaklfjlkdajsfkl3333333djslkfjasjfladsjlfj\n" +
+			"vczvlkcjxvljkzcl;xjvk;cjv;lzkcxj;lvkfgagsdgggggggggggggggggggggggggggggggggggggvcbxbbxzcz3333bxc\n" +
+			"vczvlkcjxvljkzcl;xjvk;cjv;lzkcxj;lvkfgagsdgggggggggggggggggggggggggggggggggggggvcbxbbxzczbxc\n" +
+			"daskfjpqejwogeoqnbqdkjdkjklajfdljfalksjfkjdsaklfjlkdajsfkldjslkfjasjfladsjlfj111111111111ddddddddddd\n" +
+			"d22222222askfjpqejwogeoqnbqdkjdkjklajfdljfalksjfkjdsaklfjlkdajsfkl3333333djslkfjasjfladsjlfj\n" +
+			"vczvlkcjxvljkzcl;xjvk;cjv;lzkcxj;lvkfgagsdgggggggggggggggggggggggggggggggggggggvcbxbbxzcz3333bxc\n" +
+			"vczvlkcjxvljkzcl;xjvk;cjv;lzkcxj;lvkfgagsdgggggggggggggggggggggggggggggggggggggvcbxbbxzczbxc\n" +
+			"daskfjpqejwogeoqnbqdkjdkjklajfdljfalksjfkjdsaklfjlkdajsfkldjslkfjasjfladsjlfj111111111111ddddddddddd")
+		ret, err := clt1.SendMsg(ctx1, 0x0, msg1)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(string(ret))
+		}
+
+		ctx1, cancel1 = context.WithTimeout(context.Background(), time.Second*60)
+		defer cancel1()
+		ret, err = clt2.SendMsg(ctx1, 0x0, []byte(fmt.Sprintf("hst2---- ni hao xiao huo ban %d", i)))
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(string(ret))
+		}
+
+		time.Sleep(time.Second*2)
+	}
 
 	for{
 		time.Sleep(time.Second*60)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	ci "github.com/graydream/YTHost/clientInterface"
 	"github.com/graydream/YTHost/encrypt"
 	"github.com/graydream/YTHost/service"
 	"github.com/libp2p/go-libp2p-core/crypto"
@@ -12,8 +13,8 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"github.com/yottachain/YTCrypto"
 	"golang.org/x/crypto/ripemd160"
-	//"net/rpc" //---------------------------------使用自己的rpc
-	"github.com/graydream/YTHost/rpc"
+	"net/rpc"
+	//"github.com/graydream/YTHost/rpc"
 )
 
 type YTHostClient struct {
@@ -23,7 +24,8 @@ type YTHostClient struct {
 	localPeerPubKey []byte
 	isClosed        bool
 	msgPriKey		[]byte
-	RemotePeerID	peer.ID
+	RemotePeerID	peer.ID			//链接到的目标ID
+	DstID			peer.ID			//发送到的目标ID	如果不通过中继 RemotePeerID,DstID 相同 否则不同
 }
 
 func (yc *YTHostClient) RemotePeer() peer.AddrInfo {
@@ -109,12 +111,18 @@ func (yc *YTHostClient) SendMsgPriKey() (error) {
 	return nil
 }
 
-func WarpClient(clt *rpc.Client, pi *peer.AddrInfo, pk crypto.PubKey) (*YTHostClient, error) {
+func WarpClient(clt *rpc.Client, pi *peer.AddrInfo, pk crypto.PubKey, DstID peer.ID) (ci.YTHClient, error) {
 	var yc = new(YTHostClient)
 	yc.Client = clt
 	yc.localPeerID = pi.ID
 	yc.localPeerPubKey, _ = pk.Raw()
 	yc.RemotePeerID = yc.RemotePeer().ID
+
+	if DstID == peer.ID(0) {
+		yc.DstID = yc.RemotePeerID
+	}else {
+		yc.DstID = DstID
+	}
 
 	if yc.RemotePeerID.String() == "" {
 		return nil, fmt.Errorf("peer id is nil\n")
@@ -168,7 +176,7 @@ func (yc *YTHostClient) SendMsg(ctx context.Context, id int32, data []byte) ([]b
 		pi := service.PeerInfo{yc.localPeerID, yc.localPeerAddrs, yc.localPeerPubKey}
 
 		if err := yc.Call("ms.HandleMsg",
-			service.Request{id, aesData, pi, yc.RemotePeerID}, &res); err != nil {
+			service.Request{id, aesData, pi, yc.DstID}, &res); err != nil {
 			errChan <- err
 		} else {
 			resChan <- res
@@ -228,4 +236,8 @@ func (yc *YTHostClient) IsClosed() bool {
 func (yc *YTHostClient) SendMsgClose(ctx context.Context, id int32, data []byte) ([]byte, error) {
 	defer yc.Close()
 	return yc.SendMsg(ctx, id, data)
+}
+
+func (yc *YTHostClient) GetRemotePeerID() peer.ID {
+	return yc.RemotePeerID
 }

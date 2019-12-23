@@ -3,7 +3,7 @@ package clientStore
 import (
 	"context"
 	"fmt"
-	"github.com/graydream/YTHost/client"
+	ci "github.com/graydream/YTHost/clientInterface"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/mr-tron/base58"
 	"github.com/multiformats/go-multiaddr"
@@ -11,12 +11,12 @@ import (
 )
 
 type ClientStore struct {
-	connect func(ctx context.Context, id peer.ID, mas []multiaddr.Multiaddr) (*client.YTHostClient, error)
+	connect func(ctx context.Context, id peer.ID, mas []multiaddr.Multiaddr) (ci.YTHClient, error)
 	sync.Map
 }
 
 // Get 获取一个客户端，如果没有，建立新的客户端连接
-func (cs *ClientStore) Get(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (*client.YTHostClient, error) {
+func (cs *ClientStore) Get(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (ci.YTHClient, error) {
 	select {
 	case <-ctx.Done():
 		return nil, fmt.Errorf("ctx done")
@@ -25,7 +25,7 @@ func (cs *ClientStore) Get(ctx context.Context, pid peer.ID, mas []multiaddr.Mul
 	}
 }
 
-func (cs *ClientStore) get(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (*client.YTHostClient, error) {
+func (cs *ClientStore) get(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (ci.YTHClient, error) {
 
 	// 尝试次数
 	var tryCount int
@@ -49,7 +49,7 @@ start:
 		}
 	} else {
 		// 如果已存在clt无法ping通,删除记录重新创建
-		c := _c.(*client.YTHostClient)
+		c := _c.(ci.YTHClient)
 		if c.IsClosed() || !c.Ping(ctx) {
 			cs.Map.Delete(pid)
 			goto start
@@ -59,7 +59,7 @@ start:
 	}
 }
 
-func (cs *ClientStore) GetByAddrString(ctx context.Context, id string, addrs []string) (*client.YTHostClient, error) {
+func (cs *ClientStore) GetByAddrString(ctx context.Context, id string, addrs []string) (ci.YTHClient, error) {
 	buf, _ := base58.Decode(id)
 	pid, err := peer.IDFromBytes(buf)
 	if err != nil {
@@ -84,17 +84,17 @@ func (cs *ClientStore) Close(pid peer.ID) error {
 	if !ok {
 		return fmt.Errorf("no find client ID is %s", pid.Pretty())
 	}
-	clt := _clt.(*client.YTHostClient)
+	clt := _clt.(ci.YTHClient)
 
 	cs.Map.Delete(pid)
 	return clt.Close()
 }
 
-func (cs *ClientStore) GetClient(pid peer.ID) (*client.YTHostClient, bool) {
+func (cs *ClientStore) GetClient(pid peer.ID) (ci.YTHClient, bool) {
 
 	_clt, ok := cs.Map.Load(pid)
 	if ok {
-		clt := _clt.(*client.YTHostClient)
+		clt := _clt.(ci.YTHClient)
 		return clt, ok
 	}
 	return nil, ok
@@ -104,7 +104,7 @@ func (cs *ClientStore) GetClient(pid peer.ID) (*client.YTHostClient, bool) {
 //func (cs *ClientStore) Len() int {
 //}
 
-func NewClientStore(connFunc func(ctx context.Context, id peer.ID, mas []multiaddr.Multiaddr) (*client.YTHostClient, error)) *ClientStore {
+func NewClientStore(connFunc func(ctx context.Context, id peer.ID, mas []multiaddr.Multiaddr) (ci.YTHClient, error)) *ClientStore {
 	return &ClientStore{
 		connFunc,
 		sync.Map{},

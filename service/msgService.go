@@ -1,7 +1,10 @@
 package service
 
 import (
+	"context"
 	"fmt"
+	ci "github.com/graydream/YTHost/clientInterface"
+	"github.com/graydream/YTHost/clientStore"
 	"github.com/graydream/YTHost/encrypt"
 	"github.com/graydream/YTHost/peerInfo"
 	"github.com/libp2p/go-libp2p-core/crypto"
@@ -10,6 +13,7 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"github.com/yottachain/YTCrypto"
 	"sync"
+	"time"
 )
 
 type MsgId int32
@@ -60,7 +64,7 @@ type MsgService struct {
 	Pi      peerInfo.PeerInfo
 	LocalPriKey crypto.PrivKey
 	msgPriMap *sync.Map
-	//ClientStore *clientStore.ClientStore
+	ClientStore *clientStore.ClientStore
 	LocalPeerID peer.ID
 }
 
@@ -149,19 +153,21 @@ func (ms *MsgService) HandleMsg(req Request, data *Response) error {
 
 	//fmt.Printf("secret key [%s] ---------> after at aes decode msg is [%s]\n", base58.Encode(msgKey), string(reqData))
 
-	//目标ID不是自己的ID就转发出去
-	if req.DstID != ms.LocalPeerID {
-		fmt.Printf("relay ID:[%x] transpond peer Id:[%x] msg:[%s]", ms.LocalPeerID, req.DstID, string(reqData))
-		//resdata, err := ms.transpondMsg(req.DstID, req.MsgId, reqData)
-		resdata, err := ms.transpondMsg()
-		if nil != err {
-			return err
-		}
-		data.Data = resdata
-		return nil
-	}
-
 	if ok {
+		//目标ID不是自己的ID就转发出去
+		dstr := req.DstID.String()
+		lstr := ms.LocalPeerID.String()
+		if dstr != lstr {
+			fmt.Printf("relay ID:[%s] transpond peer Id:[%s] msg:[%s]\n",
+				ms.LocalPeerID.String(), req.DstID.String(), string(reqData))
+			resdata, err := ms.transpondMsg(req.DstID, req.MsgId, reqData)
+			if nil != err {
+				return err
+			}
+			data.Data = resdata
+			return nil
+		}
+
 		if resdata, err := h(reqData, head); err != nil {
 			return nil
 		} else {
@@ -173,26 +179,25 @@ func (ms *MsgService) HandleMsg(req Request, data *Response) error {
 	}
 }
 
-func (ms *MsgService)msgPriMapinit(){
+func (ms *MsgService) msgPriMapinit() {
 	if ms.msgPriMap == nil {
 		ms.msgPriMap = &sync.Map{}
 	}
 }
 
-func (ms *MsgService) transpondMsg() ([]byte, error){
-/*func (ms *MsgService) transpondMsg(DstID peer.ID, msgId int32, msg []byte) ([]byte, error){
+//func (ms *MsgService) transpondMsg() ([]byte, error){
+func (ms *MsgService) transpondMsg(DstID peer.ID, msgId int32, msg []byte) ([]byte, error) {
 	_c, ok := ms.ClientStore.Load(DstID)
 
 	if !ok {
 		return nil, fmt.Errorf("relay not connect with peer ID: [%x]\n", DstID)
 	}
-	c := _c.(*client.YTHostClient)
+	c := _c.(ci.YTHClient)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
 	retData, err := c.SendMsg(ctx, msgId, msg)
 	if nil != err {
 		return nil, fmt.Errorf("relay send msg to peer ID: [%x] fail\n", DstID)
 	}
-	return  retData, nil*/
-	return nil, nil
+	return  retData, nil
 }

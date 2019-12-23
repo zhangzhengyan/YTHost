@@ -458,7 +458,6 @@ func (server *Server) ServeCodec(codec ServerCodec) {
 		//time.Sleep(time.Second*1)
 		service, mtype, req, argv, replyv, keepReading, err := server.readRequest(codec)
 		if err != nil {
-			//fmt.Println("aaaaaaaaaaa", err)
 			if debugLog && err != io.EOF {
 				log.Println("rpc:", err)
 			}

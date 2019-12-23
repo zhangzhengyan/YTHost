@@ -13,7 +13,7 @@ import (
 const (
 	RES = 'c'
 	RPS = 's'
-
+	defaultBufSize = 8192
 )
 
 var testCount  = 0
@@ -159,6 +159,7 @@ type Reader struct {
 	buf 		[]byte
 	r, w       	int
 	l   		sync.Mutex
+	rc 			chan bool
 }
 
 const (
@@ -167,12 +168,22 @@ const (
 	INT_MAX = int(^uint(0) >> 1)
 )
 
+func (b *Reader) Available() int { return len(b.buf) - b.w }
+
+func (b *Reader) SetReadErr(){
+	b.l.Lock()
+	defer b.l.Unlock()
+	b.r = -1
+}
+
 func (b * Reader) Read(p [] byte) (n int, err error){
 	n = len(p)
 	if n == 0 {
 		err = errors.New(ERR_BUFNOZERO)
 		return
 	}
+
+	<- b.rc
 
 	b.l.Lock()
 	defer b.l.Unlock()
@@ -185,32 +196,53 @@ func (b * Reader) Read(p [] byte) (n int, err error){
 	// copy as much as we can
 	n = copy(p, b.buf[b.r:b.w])
 	b.r += n
-	b.buf = b.buf[b.r:b.w]
-	b.w = b.w - b.r
-	b.r = 0
+	if b.Available() <= 0 {
+		copy(b.buf, b.buf[b.r:b.w])
+		b.w = b.w - b.r
+		b.r = 0
+	}
 
 	return n, nil
 }
 
-func (b *Reader) SetReadErr(){
-	b.l.Lock()
-	defer b.l.Unlock()
-	b.r = -1
-}
 
 //app data to buf
 func (b * Reader) ReadAppend(p [] byte) (err error){
-	b.l.Lock()
-	defer b.l.Unlock()
-	lenth := len(p)
-	b.w = b.w + lenth
-	if b.w > INT_MAX {
-		err = errors.New(ERR_BUFOVERFLOW)
-	}else {
-		b.buf = append(b.buf, p...)
-	}
+	//b.l.Lock()
+	//defer b.l.Unlock()
+	//lenth := len(p)
+	//b.w = b.w + lenth
+	//if b.w > INT_MAX {
+	//	err = errors.New(ERR_BUFOVERFLOW)
+	//}else {
+	//	b.buf = append(b.buf, p...)
+	//}
 
-	return
+	for {
+		b.l.Lock()
+		if len(p) < b.Available() {
+			n := copy(b.buf[b.w:], p)
+			b.w += n
+			b.l.Unlock()
+			b.rc <- true
+			return
+		} else {
+			copy(b.buf, b.buf[b.r:b.w])
+			b.w = b.w - b.r
+			b.r = 0
+
+			n := copy(b.buf[b.w:], p)
+			b.w += n
+			if n == len(p) {
+				b.l.Unlock()
+				b.rc <- true
+				return
+			}else {
+				p = p[n:]
+				b.l.Unlock()
+			}
+		}
+	}
 }
 
 func NewReader() *Reader {
@@ -225,9 +257,7 @@ type Writer struct {
 	wc   		chan bool
 }
 
-const (
-	defaultBufSize = 4096
-)
+
 
 func (b *Writer) Available() int { return len(b.buf) - b.n }
 
@@ -266,7 +296,6 @@ func (b *Writer) WriteConsume(n int, flag byte, msg []byte) ( nn int, err error)
 	b.l.Lock()
 	defer b.l.Unlock()
 
-
 	if b.Buffered() <= 0 {
 		nn = 0
 		return
@@ -277,7 +306,6 @@ func (b *Writer) WriteConsume(n int, flag byte, msg []byte) ( nn int, err error)
 	msg[0] = flag
 	nn = copy(msg[3:], b.buf[:b.n])
 	b.n = b.n - nn
-	//b.buf = b.buf[nn:]
 	copy(b.buf, b.buf[nn:])
 	mLenbyte, err := Int16Tobyte(uint16(nn))
 	msg[1] = mLenbyte[0]
@@ -318,16 +346,17 @@ type ReadWriteCloser struct {
 
 func NewReadWriter() ReadWriteCloser {
 	r := Reader{
-		buf: make([]byte, 1),
+		buf: make([]byte, defaultBufSize),
 		r:   0,
 		w:   0,
 		l:   sync.Mutex{},
+		rc:	 make(chan bool, 128),
 	}
 	w := Writer{
 		buf: make([]byte, defaultBufSize),
 		n:   0,
 		l:   sync.Mutex{},
-		wc:  make(chan bool),
+		wc:  make(chan bool, 128),
 	}
 	c := Closer{false}
 	return ReadWriteCloser{r, w, c}

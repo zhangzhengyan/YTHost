@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/graydream/YTHost/client"
+	ci "github.com/graydream/YTHost/clientInterface"
 	"github.com/graydream/YTHost/clientStore"
 	"github.com/graydream/YTHost/config"
+	"github.com/graydream/YTHost/ioStream"
 	"github.com/graydream/YTHost/option"
 	"github.com/graydream/YTHost/peerInfo"
 	"github.com/graydream/YTHost/service"
@@ -18,9 +20,8 @@ import (
 	"net"
 	"net/http"
 	_ "net/http/pprof"
-	//"net/rpc" //------------------------------------使用自己的rpc
-	"github.com/graydream/YTHost/ioStream"
-	"github.com/graydream/YTHost/rpc"
+	"net/rpc"
+	//"github.com/graydream/YTHost/rpc"
 	"sync"
 	"time"
 )
@@ -107,7 +108,7 @@ func (hst *host) Accept() {
 	msgService.Handler = hst.HandlerMap
 	msgService.LocalPriKey = hst.cfg.Privkey
 	msgService.Pi = peerInfo.PeerInfo{hst.cfg.ID, hst.Addrs()}
-	//msgService.ClientStore = hst.clientStore
+	msgService.ClientStore = hst.clientStore
 	msgService.LocalPeerID = hst.cfg.ID
 
 	if err := hst.srv.RegisterName("as", addrService); err != nil {
@@ -144,25 +145,24 @@ func (hst *host) Accept() {
 				return
 			}
 			tryCount := 1
-			var ytclt *client.YTHostClient
+			var ytclt ci.YTHClient
 			for {
 				if tryCount > 3 {
 					break
 				}else {
 					tryCount++
 				}
-				fmt.Println("recive conn")
 				ytclt, err = client.WarpClient(clt, &peer.AddrInfo{
 					hst.cfg.ID,
 					hst.Addrs(),
-				}, hst.cfg.Privkey.GetPublic())
+				}, hst.cfg.Privkey.GetPublic(), peer.ID(0))			//这种情况目标ID就是remoteID
 
 				if nil != err {
 					fmt.Println("rpc.Serve: accept conn warpClient:", err.Error())
 					continue
 				}
 
-				hst.clientStore.Store(ytclt.RemotePeerID, ytclt)
+				hst.clientStore.Store(ytclt.GetRemotePeerID(), ytclt)
 				break
 			}
 
@@ -239,7 +239,7 @@ func (hst *host) Addrs() []multiaddr.Multiaddr {
 }
 
 // Connect 连接远程节点
-func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (*client.YTHostClient, error) {
+func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (ci.YTHClient, error) {
 	conn, err := hst.connect(ctx, pid, mas)
 	if err != nil {
 		return nil, err
@@ -254,12 +254,12 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 	clt := rpc.NewClient(cConn)
 
 	count := 1
-	var ytclt *client.YTHostClient
+	var ytclt ci.YTHClient
 	for {
 		ytclt, err = client.WarpClient(clt, &peer.AddrInfo{
 			hst.cfg.ID,
 			hst.Addrs(),
-		}, hst.cfg.Privkey.GetPublic())
+		}, hst.cfg.Privkey.GetPublic(), pid)
 		if err != nil {
 			if count > 3 {
 				return nil, err
@@ -360,7 +360,7 @@ func (hst *host) connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 }
 
 // ConnectAddrStrings 连接字符串地址
-func (hst *host) ConnectAddrStrings(ctx context.Context, id string, addrs []string) (*client.YTHostClient, error) {
+func (hst *host) ConnectAddrStrings(ctx context.Context, id string, addrs []string) (ci.YTHClient, error) {
 
 	buf, _ := base58.Decode(id)
 	pid, err := peer.IDFromBytes(buf)
