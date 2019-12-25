@@ -3,14 +3,14 @@ package host
 import (
 	"context"
 	"fmt"
-	"github.com/graydream/YTHost/client"
-	ci "github.com/graydream/YTHost/clientInterface"
-	"github.com/graydream/YTHost/clientStore"
-	"github.com/graydream/YTHost/config"
-	"github.com/graydream/YTHost/ioStream"
-	"github.com/graydream/YTHost/option"
-	"github.com/graydream/YTHost/peerInfo"
-	"github.com/graydream/YTHost/service"
+	"github.com/yottachain/YTHost/client"
+	ci "github.com/yottachain/YTHost/clientInterface"
+	"github.com/yottachain/YTHost/clientStore"
+	"github.com/yottachain/YTHost/config"
+	"github.com/yottachain/YTHost/ioStream"
+	"github.com/yottachain/YTHost/option"
+	"github.com/yottachain/YTHost/peerInfo"
+	"github.com/yottachain/YTHost/service"
 	"github.com/libp2p/go-libp2p-core/peer"
 	reuse "github.com/libp2p/go-reuseport"
 	"github.com/mr-tron/base58"
@@ -21,7 +21,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"net/rpc"
-	//"github.com/graydream/YTHost/rpc"
+	//"github.com/yottachain/YTHost/rpc"
 	"sync"
 	"time"
 )
@@ -168,7 +168,7 @@ func (hst *host) Accept() {
 
 			tryCount = 1
 			for {
-				if tryCount > 10 {
+				if tryCount > 6 {
 					_ = sConn.Close()
 					_ = cConn.Close()
 					//_ = hst.clientStore.Close(ytclt.RemotePeerID)
@@ -182,7 +182,7 @@ func (hst *host) Accept() {
 						defer cancel()
 						if ytclt.Ping(ctx) {
 							tryCount--
-							time.Sleep(time.Second*2)
+							time.Sleep(time.Second*10)
 						}
 				}
 			}
@@ -245,36 +245,23 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 		return nil, err
 	}
 
-	//clt, gobc := rpc.NewClient(conn)
-	//go hst.srv.ServeConn(gobc)
-	//time.Sleep(time.Second*2)
-
 	sConn, cConn := ioStream.NewStreamHandler(conn)
 	go hst.srv.ServeConn(sConn)
 	clt := rpc.NewClient(cConn)
 
-	count := 1
-	var ytclt ci.YTHClient
-	for {
-		ytclt, err = client.WarpClient(clt, &peer.AddrInfo{
-			hst.cfg.ID,
-			hst.Addrs(),
-		}, hst.cfg.Privkey.GetPublic(), pid)
-		if err != nil {
-			if count > 3 {
-				return nil, err
-			}else {
-				count++
-			}
-		}else {
-			break
-		}
+	ytclt, err := client.WarpClient(clt, &peer.AddrInfo{
+		hst.cfg.ID,
+		hst.Addrs(),
+	}, hst.cfg.Privkey.GetPublic(), pid)
+
+	if nil != err {
+		return nil, err
 	}
 
 	go func() {
 		tryCount := 1
 		for {
-			if tryCount > 10 {
+			if tryCount > 6 {
 				_ = sConn.Close()
 				_ = cConn.Close()
 				//_ = hst.clientStore.Close(ytclt.RemotePeerID)
@@ -288,7 +275,7 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 				defer cancel()
 				if ytclt.Ping(ctx) {
 					tryCount--
-					time.Sleep(time.Second*2)
+					time.Sleep(time.Second*10)
 				}
 			}
 		}
@@ -352,7 +339,6 @@ func (hst *host) connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 			return nil, fmt.Errorf("ctx quit")
 		case conn := <-connChan:
 			return conn, nil
-
 		case err := <-errChan:
 			return nil, err
 		}
