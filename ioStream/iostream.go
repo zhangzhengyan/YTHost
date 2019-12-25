@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"sync"
 )
 
@@ -15,6 +16,8 @@ const (
 	RPS = 's'
 	defaultBufSize = 8192
 )
+
+var MAGIC = [3]byte{'Y', 'T', 'A'}
 
 var testCount  = 0
 
@@ -28,11 +31,9 @@ func NewStreamHandler(conn io.ReadWriteCloser) (sconn *ReadWriteCloser, cconn *R
 
 	buf := bufio.NewWriter(conn)
 
-	//num := testCount + 1
 	testCount ++
-
 	go func() {
-		by := make([]byte, 2)
+		by := make([]byte, 16)
 		for {
 			if sconn.isClose == true || cconn.isClose == true {
 				sconn.SetReadErr()
@@ -43,10 +44,13 @@ func NewStreamHandler(conn io.ReadWriteCloser) (sconn *ReadWriteCloser, cconn *R
 			///time.Sleep(time.Second*2)
 			//fmt.Printf("count:%d----f:%s\n", num, string(f))
 			//fmt.Printf("count:%d" + "----msg:" + string(msg) + "\n", testCount)
-			if err != nil {
-				fmt.Println(err)
-				_ = sconn.Close()
-				_ = cconn.Close()
+			if err != nil  {
+				if err == io.EOF {
+					log.Println(err)
+					_ = sconn.Close()
+					_ = cconn.Close()
+				}
+				continue
 			}
 			if f == RES {
 				_ = sconn.ReadAppend(msg)
@@ -58,49 +62,33 @@ func NewStreamHandler(conn io.ReadWriteCloser) (sconn *ReadWriteCloser, cconn *R
 		}
 	}()
 
-	go func(l *sync.Mutex) {
-		msg := make([]byte, 2048 + 3)
+	var WCfunc = func(l *sync.Mutex, conn *ReadWriteCloser, flag byte) {
+		msg := make([]byte, 2048 + 6)
 		for {
-			if sconn.isClose == true {
+			if conn.isClose == true {
 				return
 			}
-			n, err:= sconn.WriteConsume(2048, RPS, msg)
+			n, err:= conn.WriteConsume(2048, flag, msg)
 			//fmt.Printf("sconn----->>>>>count:%d----n:%d\n", num, n)
 
 			if err != nil {
 				fmt.Println(err)
+				continue
 			}
 			if n > 0 {
 				l.Lock()
 				//fmt.Println(msg[0:n+3])
-				buf.Write(msg[0:n+3])
-				buf.Flush()
+				_, err = buf.Write(msg[0:n+6])
+				if nil == err {
+					_ = buf.Flush()
+				}
 				l.Unlock()
 			}
 		}
-	}(&l)
+	}
 
-	go func(l *sync.Mutex) {
-		msg := make([]byte, 2048 + 3)
-		for {
-			if cconn.isClose == true {
-				return
-			}
-			n, err:= cconn.WriteConsume(2048, RES, msg)
-			//fmt.Printf("cconn----->>>>>count:%d----n:%d\n",  num, n)
-
-			if err != nil {
-				fmt.Println(err)
-			}
-			if n > 0 {
-				l.Lock()
-				//fmt.Println(msg[0:n+3])
-				buf.Write(msg[0:n+3])
-				buf.Flush()
-				l.Unlock()
-			}
-		}
-	}(&l)
+	go WCfunc(&l, sconn, RPS)
+	go WCfunc(&l, cconn, RES)
 
 	return
 }
@@ -128,27 +116,70 @@ func Int16Tobyte(m uint16) ([]byte, error) {
 }
 
 func DecodeConn(conn io.ReadWriteCloser, buf []byte) (flag byte, bLen uint16, msgbuf []byte, err error) {
-	//第一个字节是标志 后两个字节是长度
+	//第一个字节是标志 后面三个字节数魔术字 最后两个字节是长度
 	n, err := io.ReadFull(conn, buf[0:1])
-	if n == 0 {
+	if err != nil {
+		if err == io.EOF || err == io.ErrUnexpectedEOF {
+			err = io.EOF
+		}
 		return
 	}
+
 	b := buf[0]
 	if b != RES && b != RPS {
 		err = errors.New("conn stream flag error\n")
+		return
 	}
 	flag = b
 
-	//两个字节作为每个消息块的长度
-	n, err = io.ReadFull(conn, buf[0:2])
-	if n == 0 {
+	//继续三个字节是魔术字
+	n, err = io.ReadFull(conn, buf[0:3])
+	if err != nil {
+		if err == io.EOF || err == io.ErrUnexpectedEOF {
+			err = io.EOF
+		}
 		return
 	}
 
-	bLen, err = byteToInt16(buf)
+	magic:
+	if buf[0] != MAGIC[0] || buf[1] != MAGIC[1] || buf[2] != MAGIC[2] {
+		if buf[0] == RES || buf[0] == RPS {
+			flag = buf[0]
+
+			buf[0] = buf[1]
+			buf[1] = buf[2]
+			n, err = io.ReadFull(conn, buf[2:3])
+			if err != nil {
+				if err == io.EOF || err == io.ErrUnexpectedEOF {
+					err = io.EOF
+				}
+				return
+			}
+			goto magic
+		}
+		err = errors.New("conn stream magic error\n")
+		return
+	}
+
+	//继续两个字节作为每个消息块的长度
+	n, err = io.ReadFull(conn, buf[0:2])
+	if err != nil {
+		if err == io.EOF || err == io.ErrUnexpectedEOF {
+			err = io.EOF
+		}
+		return
+	}
+
+	bLen, err = byteToInt16(buf[0:2])
 	if err == nil {
 		msgbuf = make([]byte, bLen)
 		n, err = io.ReadFull(conn, msgbuf)
+		if err != nil {
+			if err == io.EOF || err == io.ErrUnexpectedEOF {
+				err = io.EOF
+			}
+			return
+		}
 		bLen = uint16(n)
 	}
 
@@ -164,7 +195,6 @@ type Reader struct {
 
 const (
 	ERR_BUFNOZERO = "read buf lenth can't be zero\n"
-	ERR_BUFOVERFLOW = "read buf overflow\n"
 	INT_MAX = int(^uint(0) >> 1)
 )
 
@@ -205,42 +235,25 @@ func (b * Reader) Read(p [] byte) (n int, err error){
 	return n, nil
 }
 
-
 //app data to buf
 func (b * Reader) ReadAppend(p [] byte) (err error){
-	//b.l.Lock()
-	//defer b.l.Unlock()
-	//lenth := len(p)
-	//b.w = b.w + lenth
-	//if b.w > INT_MAX {
-	//	err = errors.New(ERR_BUFOVERFLOW)
-	//}else {
-	//	b.buf = append(b.buf, p...)
-	//}
-
 	for {
 		b.l.Lock()
-		if len(p) < b.Available() {
-			n := copy(b.buf[b.w:], p)
-			b.w += n
-			b.l.Unlock()
-			b.rc <- true
-			return
-		} else {
+		if len(p) > b.Available() {
 			copy(b.buf, b.buf[b.r:b.w])
 			b.w = b.w - b.r
 			b.r = 0
-
-			n := copy(b.buf[b.w:], p)
-			b.w += n
-			if n == len(p) {
-				b.l.Unlock()
-				b.rc <- true
-				return
-			}else {
-				p = p[n:]
-				b.l.Unlock()
-			}
+		}
+		n := copy(b.buf[b.w:], p)
+		b.w += n
+		if n == len(p) {
+			b.l.Unlock()
+			b.rc <- true
+			return
+		}else {
+			p = p[n:]
+			b.l.Unlock()
+			b.rc <- true
 		}
 	}
 }
@@ -256,8 +269,6 @@ type Writer struct {
 	l   		sync.Mutex
 	wc   		chan bool
 }
-
-
 
 func (b *Writer) Available() int { return len(b.buf) - b.n }
 
@@ -304,12 +315,15 @@ func (b *Writer) WriteConsume(n int, flag byte, msg []byte) ( nn int, err error)
 	//前三个字节作为标识
 	//msg = make([]byte, n + 3)
 	msg[0] = flag
-	nn = copy(msg[3:], b.buf[:b.n])
+	msg[1] = MAGIC[0]
+	msg[2] = MAGIC[1]
+	msg[3] = MAGIC[2]
+	nn = copy(msg[6:], b.buf[:b.n])
 	b.n = b.n - nn
 	copy(b.buf, b.buf[nn:])
 	mLenbyte, err := Int16Tobyte(uint16(nn))
-	msg[1] = mLenbyte[0]
-	msg[2] = mLenbyte[1]
+	msg[4] = mLenbyte[0]
+	msg[5] = mLenbyte[1]
 
 	return
 }
@@ -321,6 +335,8 @@ func NewWriterSize(size int) *Writer {
 	return &Writer{
 		buf: make([]byte, size),
 		n:  0,
+		l:   sync.Mutex{},
+		wc:  make(chan bool, 128),
 	}
 }
 
