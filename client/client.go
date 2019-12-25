@@ -4,9 +4,9 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	ci "github.com/graydream/YTHost/clientInterface"
-	"github.com/graydream/YTHost/encrypt"
-	"github.com/graydream/YTHost/service"
+	ci "github.com/yottachain/YTHost/clientInterface"
+	"github.com/yottachain/YTHost/encrypt"
+	"github.com/yottachain/YTHost/service"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/mr-tron/base58"
@@ -14,7 +14,7 @@ import (
 	"github.com/yottachain/YTCrypto"
 	"golang.org/x/crypto/ripemd160"
 	"net/rpc"
-	//"github.com/graydream/YTHost/rpc"
+	//"github.com/yottachain/YTHost/rpc"
 )
 
 type YTHostClient struct {
@@ -81,7 +81,7 @@ func (yc *YTHostClient) SendMsgPriKey() (error) {
 
 	msgkey := yc.msgPriKey
 
-	fmt.Printf("client gen prikey is %s\n", base58.Encode(msgkey))
+	//fmt.Printf("client gen prikey is %s\n", base58.Encode(msgkey))
 
 	hasher := ripemd160.New()
 	hasher.Write(pkbyte)
@@ -90,7 +90,7 @@ func (yc *YTHostClient) SendMsgPriKey() (error) {
 
 	pkstr := base58.Encode(pkbyte)
 
-	fmt.Printf("peer publickey is %s\n", pkstr)
+	//fmt.Printf("peer publickey is %s\n", pkstr)
 
 	//加密
 	cipherKkey, err := YTCrypto.ECCEncrypt(msgkey, pkstr)
@@ -128,22 +128,22 @@ func WarpClient(clt *rpc.Client, pi *peer.AddrInfo, pk crypto.PubKey, DstID peer
 		return nil, fmt.Errorf("peer id is nil\n")
 	}
 
-	fmt.Printf("peer ID:[%s]\n", yc.RemotePeerID.String())
+	//fmt.Printf("peer ID:[%s]\n", yc.RemotePeerID.String())
 
 	//gener current session msg pri key
 	msgprikey, _, _ := crypto.GenerateSecp256k1Key(rand.Reader)
 	prikey,_ := msgprikey.Raw()
 	yc.msgPriKey =  prikey
 
-	for _, v := range pi.Addrs {
-		yc.localPeerAddrs = append(yc.localPeerAddrs, v.String())
-	}
-	yc.isClosed = false
-
 	err := yc.SendMsgPriKey()
 	if err != nil {
 		return nil, err
 	}
+
+	for _, v := range pi.Addrs {
+		yc.localPeerAddrs = append(yc.localPeerAddrs, v.String())
+	}
+	yc.isClosed = false
 
 	return yc, nil
 }
@@ -187,7 +187,11 @@ func (yc *YTHostClient) SendMsg(ctx context.Context, id int32, data []byte) ([]b
 	case <-ctx.Done():
 		return nil, fmt.Errorf("ctx time out")
 	case rd := <-resChan:
-		return rd.Data, nil
+		rpsData, err := encrypt.AesCBCDncrypt(rd.Data, aesKey)
+		if err != nil {
+			err =  fmt.Errorf("respones AesCBCDncrypt msg error %x", err)
+		}
+		return rpsData, nil
 	case err := <-errChan:
 		return nil, err
 	}
