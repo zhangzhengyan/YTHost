@@ -3,10 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
-	ci "github.com/graydream/YTHost/clientInterface"
-	"github.com/graydream/YTHost/clientStore"
-	"github.com/graydream/YTHost/encrypt"
-	"github.com/graydream/YTHost/peerInfo"
+	ci "github.com/yottachain/YTHost/clientInterface"
+	"github.com/yottachain/YTHost/clientStore"
+	"github.com/yottachain/YTHost/encrypt"
+	"github.com/yottachain/YTHost/peerInfo"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/mr-tron/base58"
@@ -171,7 +171,11 @@ func (ms *MsgService) HandleMsg(req Request, data *Response) error {
 		if resdata, err := h(reqData, head); err != nil {
 			return nil
 		} else {
-			data.Data = resdata
+			aesData, err := encrypt.AesCBCEncrypt(resdata, msgKey)
+			if err != nil {
+				return fmt.Errorf("respones AesCBCEncrypt msg error %x", err)
+			}
+			data.Data = aesData
 			return nil
 		}
 	} else {
