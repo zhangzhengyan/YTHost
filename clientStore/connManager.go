@@ -3,7 +3,7 @@ package clientStore
 import (
 	"context"
 	"fmt"
-	ci "github.com/graydream/YTHost/clientInterface"
+	ci "github.com/yottachain/YTHost/clientInterface"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/mr-tron/base58"
 	"github.com/multiformats/go-multiaddr"

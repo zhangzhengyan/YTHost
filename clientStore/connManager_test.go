@@ -1,9 +1,9 @@
 package clientStore_test
 
 import (
-	host "github.com/graydream/YTHost"
-	"github.com/graydream/YTHost/option"
-	"github.com/graydream/YTHost/service"
+	host "github.com/yottachain/YTHost"
+	"github.com/yottachain/YTHost/option"
+	"github.com/yottachain/YTHost/service"
 	"github.com/multiformats/go-multiaddr"
 	"golang.org/x/net/context"
 	"testing"

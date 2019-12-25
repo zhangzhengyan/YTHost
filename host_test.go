@@ -4,11 +4,11 @@ import (
 	"context"
 	ra "crypto/rand"
 	"fmt"
-	host "github.com/graydream/YTHost"
-	ci "github.com/graydream/YTHost/clientInterface"
-	. "github.com/graydream/YTHost/hostInterface"
-	"github.com/graydream/YTHost/option"
-	"github.com/graydream/YTHost/service"
+	host "github.com/yottachain/YTHost"
+	ci "github.com/yottachain/YTHost/clientInterface"
+	. "github.com/yottachain/YTHost/hostInterface"
+	"github.com/yottachain/YTHost/option"
+	"github.com/yottachain/YTHost/service"
 	ic "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/mr-tron/base58"
 	"github.com/multiformats/go-multiaddr"
@@ -800,7 +800,6 @@ func TestRelayTransMsg(t *testing.T){
 	fmt.Println(hst2.Config().ID.String())
 	fmt.Println(hst3.Config().ID.String())
 	fmt.Println()
-	fmt.Println()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
@@ -837,7 +836,9 @@ func TestRelayTransMsg(t *testing.T){
 	maddrs[0], err = multiaddr.NewMultiaddr(mastr)
 	ctx, cancel = context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
+	var cltt1 *ci.YTHClient
 	clt1, err := hst1.ClientStore().Get(ctx, hst3.Config().ID, maddrs)
+	cltt1 = &clt1
 	if nil != err {
 		panic(err)
 	}
@@ -852,10 +853,23 @@ func TestRelayTransMsg(t *testing.T){
 		panic(err)
 	}
 
+	go func() {
+		time.Sleep(time.Second*60)
+		_ = hst1.ClientStore().Close(hst3.Config().ID)
+		time.Sleep(time.Second*60)
+		ctx, cancel = context.WithTimeout(context.Background(), time.Second*60)
+		defer cancel()
+		clt1, err = hst1.ClientStore().Get(ctx, hst3.Config().ID, maddrs)
+		cltt1 = &clt1
+		if nil != err {
+			panic(err)
+		}
+	}()
+
 	for i := 0; i < 1000; i++ {
 		ctx1, cancel1 := context.WithTimeout(context.Background(), time.Second*60)
 		defer cancel1()
-		msg1 := []byte("d22222222askfjpqejwogeoqnbqdkjdkjklajfdljfalksjfkjdsaklfjlkdajsfkl3333333djslkfjasjfladsjlfj\n" +
+		msg1 := []byte("host1----->>>host2-------->>>host3  d22222222askfjpqejwogeoqnbqdkjdkjklajfdljfalksjfkjdsaklfjlkdajsfkl3333333djslkfjasjfladsjlfj\n" +
 			"vczvlkcjxvljkzcl;xjvk;cjv;lzkcxj;lvkfgagsdgggggggggggggggggggggggggggggggggggggvcbxbbxzcz3333bxc\n" +
 			"vczvlkcjxvljkzcl;xjvk;cjv;lzkcxj;lvkfgagsdgggggggggggggggggggggggggggggggggggggvcbxbbxzczbxc\n" +
 			"daskfjpqejwogeoqnbqdkjdkjklajfdljfalksjfkjdsaklfjlkdajsfkldjslkfjasjfladsjlfj111111111111ddddddddddd\n" +
@@ -863,20 +877,31 @@ func TestRelayTransMsg(t *testing.T){
 			"vczvlkcjxvljkzcl;xjvk;cjv;lzkcxj;lvkfgagsdgggggggggggggggggggggggggggggggggggggvcbxbbxzcz3333bxc\n" +
 			"vczvlkcjxvljkzcl;xjvk;cjv;lzkcxj;lvkfgagsdgggggggggggggggggggggggggggggggggggggvcbxbbxzczbxc\n" +
 			"daskfjpqejwogeoqnbqdkjdkjklajfdljfalksjfkjdsaklfjlkdajsfkldjslkfjasjfladsjlfj111111111111ddddddddddd")
-		ret, err := clt1.SendMsg(ctx1, 0x0, msg1)
-		if err != nil {
-			fmt.Println(err)
-		} else {
-			fmt.Println(string(ret))
+		if !(*cltt1).IsClosed() {
+			ret, err := (*cltt1).SendMsg(ctx1, 0x0, msg1)
+			if err != nil {
+				fmt.Println(err)
+			} else {
+				fmt.Println(string(ret))
+			}
 		}
 
 		ctx1, cancel1 = context.WithTimeout(context.Background(), time.Second*60)
 		defer cancel1()
-		ret, err = clt2.SendMsg(ctx1, 0x0, []byte(fmt.Sprintf("hst2---- ni hao xiao huo ban %d", i)))
-		if err != nil {
-			fmt.Println(err)
-		} else {
-			fmt.Println(string(ret))
+		msg2 := []byte("host1----->>>host3-------->>>host2   1111111111111111111111119999999999999999999999999dgggggggggggggggggggggggggggggggggggggvcbxbbxzcz3333bxc\n" +
+			"vczvlkcjxvljkzcl;xjvk;cjvlksjfkjdsaklfjlkdajsfkl3333333d;lzkcxj;lvkfgagsdgsssssssssssssssssgvcbxbbxzczbxc\n" +
+			"daskfjpqejwogeoqnbqdkjdkjksssssssssssssssssssssssssslkfjasjfladsjlfj111111111111ddddddddddd\n" +
+			"d22222222askf555555555555555555555555555533djslkfjasjfladsjlfj\n" +
+			"vczvlkcjxvljkzcl;xjvk;cjv;lzkcxj;lvkfgagsdgg666666666666666666666666666666gggvcbxbbxzcz3333bxc\n" +
+			"vczvlkcjxvljkzcl;xjvk;cjv;lzkcxj;lvkfga7777777777777777777777777gggggvcbxbbxzczbxc\n" +
+			"daskfjpqejwoge8888888888888888888888888888888888888888888888888888st2---- ni hao xiao huo ban")
+		if !clt2.IsClosed() {
+			ret, err := clt2.SendMsg(ctx1, 0x0, msg2)
+			if err != nil {
+				fmt.Println(err)
+			} else {
+				fmt.Println(string(ret))
+			}
 		}
 
 		time.Sleep(time.Second*2)

@@ -2,14 +2,14 @@ package hostInterface
 
 import (
 	"context"
-	ci "github.com/graydream/YTHost/clientInterface"
-	"github.com/graydream/YTHost/clientStore"
-	"github.com/graydream/YTHost/config"
-	"github.com/graydream/YTHost/service"
+	ci "github.com/yottachain/YTHost/clientInterface"
+	"github.com/yottachain/YTHost/clientStore"
+	"github.com/yottachain/YTHost/config"
+	"github.com/yottachain/YTHost/service"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 	"net/rpc"
-	//"github.com/graydream/YTHost/rpc"
+	//"github.com/yottachain/YTHost/rpc"
 )
 
 type Host interface {

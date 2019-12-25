@@ -1,4 +1,4 @@
-module github.com/graydream/YTHost
+module github.com/yottachain/YTHost
 
 go 1.13
 

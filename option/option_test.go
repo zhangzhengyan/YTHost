@@ -2,8 +2,8 @@ package option_test
 
 import (
 	ra "crypto/rand"
-	"github.com/graydream/YTHost"
-	"github.com/graydream/YTHost/option"
+	"github.com/yottachain/YTHost"
+	"github.com/yottachain/YTHost/option"
 	ic "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/multiformats/go-multiaddr"
 	"testing"
