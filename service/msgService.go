@@ -158,8 +158,8 @@ func (ms *MsgService) HandleMsg(req Request, data *Response) error {
 		dstr := req.DstID.String()
 		lstr := ms.LocalPeerID.String()
 		if dstr != lstr {
-			fmt.Printf("relay ID:[%s] transpond peer Id:[%s] msg:[%s]\n",
-				ms.LocalPeerID.String(), req.DstID.String(), string(reqData))
+			//fmt.Printf("relay ID:[%s] transpond peer Id:[%s] msg:[%s]\n",
+			//	ms.LocalPeerID.String(), req.DstID.String(), string(reqData))
 			resdata, err := ms.transpondMsg(req.DstID, req.MsgId, reqData)
 			if nil != err {
 				return err

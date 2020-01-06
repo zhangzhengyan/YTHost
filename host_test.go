@@ -913,3 +913,75 @@ func TestRelayTransMsg(t *testing.T){
 	}
 
 }
+
+func TestRelayTransMsg1(t *testing.T){
+	mastr := fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 9000)
+	ma, _ := multiaddr.NewMultiaddr(mastr)
+	hst1, err := host.NewHost(option.ListenAddr(ma), option.OpenPProf("127.0.0.1:8888"))
+	if err != nil {
+		panic(err)
+	}
+
+	go hst1.Accept()
+
+	mastr = fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 9001)
+	ma, _ = multiaddr.NewMultiaddr(mastr)
+	hst2, err := host.NewHost(option.ListenAddr(ma), option.OpenPProf("127.0.0.1:8889"))
+	if err != nil {
+		panic(err)
+	}
+
+	go hst2.Accept()
+
+
+	hst2.RegisterGlobalMsgHandler(func(requestData []byte, head service.Head) (bytes []byte, e error) {
+		fmt.Println(fmt.Sprintf("msg is [%s]", string(requestData)))
+		return []byte("receice----hst2------hst2------hst2------succeed!"), nil
+	})
+
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
+	defer cancel()
+	//_, err = hst1.ClientStore(ctx, hst2.Config().ID, hst2.Addrs())
+	clt, err := hst1.ClientStore().Get(ctx, hst2.Config().ID, hst2.Addrs())
+	if nil != err {
+		panic(err)
+	}
+
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second*60)
+	defer cancel()
+	_, err = hst2.ClientStore().Get(ctx, hst1.Config().ID, hst1.Addrs())
+	if nil != err {
+		panic(err)
+	}
+
+
+	for i := 0; i < 1000; i++ {
+		ctx1, cancel1 := context.WithTimeout(context.Background(), time.Second*60)
+		defer cancel1()
+		msg1 := []byte("host1----->>>host2-------->>>host3  d22222222askfjpqejwogeoqnbqdkjdkjklajfdljfalksjfkjdsaklfjlkdajsfkl3333333djslkfjasjfladsjlfj\n" +
+			"vczvlkcjxvljkzcl;xjvk;cjv;lzkcxj;lvkfgagsdgggggggggggggggggggggggggggggggggggggvcbxbbxzcz3333bxc\n" +
+			"vczvlkcjxvljkzcl;xjvk;cjv;lzkcxj;lvkfgagsdgggggggggggggggggggggggggggggggggggggvcbxbbxzczbxc\n" +
+			"daskfjpqejwogeoqnbqdkjdkjklajfdljfalksjfkjdsaklfjlkdajsfkldjslkfjasjfladsjlfj111111111111ddddddddddd\n" +
+			"d22222222askfjpqejwogeoqnbqdkjdkjklajfdljfalksjfkjdsaklfjlkdajsfkl3333333djslkfjasjfladsjlfj\n" +
+			"vczvlkcjxvljkzcl;xjvk;cjv;lzkcxj;lvkfgagsdgggggggggggggggggggggggggggggggggggggvcbxbbxzcz3333bxc\n" +
+			"vczvlkcjxvljkzcl;xjvk;cjv;lzkcxj;lvkfgagsdgggggggggggggggggggggggggggggggggggggvcbxbbxzczbxc\n" +
+			"daskfjpqejwogeoqnbqdkjdkjklajfdljfalksjfkjdsaklfjlkdajsfkldjslkfjasjfladsjlfj111111111111ddddddddddd")
+		//if !(*cltt1).IsClosed() {
+			ret, err := clt.SendMsg(ctx1, 0x0, msg1)
+			if err != nil {
+				fmt.Println(err)
+			} else {
+				fmt.Println(string(ret))
+			}
+		//}
+
+		time.Sleep(time.Second*2)
+	}
+
+	for{
+		time.Sleep(time.Second*60)
+		break
+	}
+
+}
