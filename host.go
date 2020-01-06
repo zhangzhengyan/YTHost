@@ -162,7 +162,15 @@ func (hst *host) Accept() {
 					continue
 				}
 
-				hst.clientStore.Store(ytclt.GetRemotePeerID(), ytclt)
+				pid := ytclt.GetRemotePeerID()
+				_, ok := hst.clientStore.Load(pid)
+				if ok {
+					_ = sConn.Close()
+					_ = cConn.Close()
+					return
+				}else {
+					hst.clientStore.Store(pid, ytclt)
+				}
 				break
 			}
 
