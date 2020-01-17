@@ -33,11 +33,13 @@ func NewStreamHandler(conn io.ReadWriteCloser) (sconn *ReadWriteCloser, cconn *R
 
 	testCount ++
 	go func() {
+		connect := conn
 		by := make([]byte, 16)
 		for {
-			if sconn.isClose == true || cconn.isClose == true {
+			if sconn.GetClose() == true || cconn.GetClose() == true {
 				sconn.SetReadErr()
 				cconn.SetReadErr()
+				_ = connect.Close()
 				return
 			}
 			f, _, msg, err := DecodeConn(conn, by)
@@ -47,6 +49,7 @@ func NewStreamHandler(conn io.ReadWriteCloser) (sconn *ReadWriteCloser, cconn *R
 			if err != nil  {
 				if err == io.EOF {
 					log.Println(err)
+					fmt.Println(err)
 					_ = sconn.Close()
 					_ = cconn.Close()
 				}
@@ -352,6 +355,10 @@ type Closer struct {
 func (c * Closer) Close() error{
 	c.isClose = true
 	return nil
+}
+
+func (c * Closer) GetClose() bool {
+	return c.isClose
 }
 
 type ReadWriteCloser struct {
