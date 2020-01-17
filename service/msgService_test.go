@@ -48,20 +48,20 @@ func TestMsg(t *testing.T){
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
-	clt, err := hst1.Connect(ctx, hst.Config().ID, hst.Addrs())
+	clt, _, err := hst1.Connect(ctx, hst.Config().ID, hst.Addrs())
 	// 关闭连接
 	defer clt.Close()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	if res, err := clt.SendMsg(context.Background(), 0x11, []byte("111111111111111")); err != nil {
+	if res, err := clt.SendMsg(context.Background(), hst.Config().ID, 0x11, []byte("111111111111111")); err != nil {
 		t.Fatal(err)
 	} else {
 		t.Log(string(res))
 	}
 
-	if res, err := clt.SendMsg(context.Background(), 0x0, []byte("global msg")); err != nil {
+	if res, err := clt.SendMsg(context.Background(), hst.Config().ID, 0x0, []byte("global msg")); err != nil {
 		t.Fatal(err)
 	} else {
 		t.Log(string(res))
