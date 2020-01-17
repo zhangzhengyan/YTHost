@@ -3,6 +3,11 @@ package host
 import (
 	"context"
 	"fmt"
+	"github.com/libp2p/go-libp2p-core/peer"
+	reuse "github.com/libp2p/go-reuseport"
+	"github.com/mr-tron/base58"
+	"github.com/multiformats/go-multiaddr"
+	mnet "github.com/multiformats/go-multiaddr-net"
 	"github.com/yottachain/YTHost/client"
 	ci "github.com/yottachain/YTHost/clientInterface"
 	"github.com/yottachain/YTHost/clientStore"
@@ -11,11 +16,6 @@ import (
 	"github.com/yottachain/YTHost/option"
 	"github.com/yottachain/YTHost/peerInfo"
 	"github.com/yottachain/YTHost/service"
-	"github.com/libp2p/go-libp2p-core/peer"
-	reuse "github.com/libp2p/go-reuseport"
-	"github.com/mr-tron/base58"
-	"github.com/multiformats/go-multiaddr"
-	mnet "github.com/multiformats/go-multiaddr-net"
 	"log"
 	"net"
 	"net/http"
@@ -98,6 +98,34 @@ func NewHost(options ...option.Option) (*host, error) {
 	return hst, nil
 }
 
+func (hst *host) pingConn(sConn *ioStream.ReadWriteCloser, cConn *ioStream.ReadWriteCloser, ytclt ci.YTHClient) {
+	tryCount := 1
+	for {
+		if sConn.GetClose() || cConn.GetClose() {
+			return
+		}
+		if tryCount > 6 {
+			_ = sConn.Close()
+			_ = cConn.Close()
+
+			break
+		}else {
+			tryCount++
+		}
+		if ytclt != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+			defer cancel()
+			if ytclt.Ping(ctx) {
+				//fmt.Println("ping succeed!")
+				tryCount--
+				time.Sleep(time.Second*10)
+			}else {
+				//fmt.Println("ping fail!")
+			}
+		}
+	}
+}
+
 func (hst *host) Accept() {
 	addrService := new(service.AddrService)
 	addrService.Info.ID = hst.cfg.ID
@@ -148,7 +176,11 @@ func (hst *host) Accept() {
 			var ytclt ci.YTHClient
 			for {
 				if tryCount > 3 {
-					break
+					ytclt = nil
+					_ = sConn.Close()
+					_ = cConn.Close()
+
+					return
 				}else {
 					tryCount++
 				}
@@ -162,7 +194,19 @@ func (hst *host) Accept() {
 					continue
 				}
 
-				pid := ytclt.GetRemotePeerID()
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+				defer cancel()
+				if ytclt.Ping(ctx) {
+					pid := ytclt.GetRemotePeerID()
+					hst.clientStore.Store(pid, ytclt)
+					break
+				}else {
+					_ = sConn.Close()
+					_ = cConn.Close()
+					return
+				}
+
+				/*pid := ytclt.GetRemotePeerID()
 				_, ok := hst.clientStore.Load(pid)
 				if ok {
 					_ = sConn.Close()
@@ -171,29 +215,10 @@ func (hst *host) Accept() {
 				}else {
 					hst.clientStore.Store(pid, ytclt)
 				}
-				break
+				break*/
 			}
 
-			tryCount = 1
-			for {
-				if tryCount > 6 {
-					_ = sConn.Close()
-					_ = cConn.Close()
-					//_ = hst.clientStore.Close(ytclt.RemotePeerID)
-					//_ = connect.Close()
-					break
-				}else {
-					tryCount++
-				}
-				if ytclt != nil {
-						ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-						defer cancel()
-						if ytclt.Ping(ctx) {
-							tryCount--
-							time.Sleep(time.Second*10)
-						}
-				}
-			}
+			hst.pingConn(sConn, cConn, ytclt)
 		}(sConn, cConn)
 	}
 }
@@ -247,49 +272,28 @@ func (hst *host) Addrs() []multiaddr.Multiaddr {
 }
 
 // Connect 连接远程节点
-func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (ci.YTHClient, error) {
+func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (ytclt ci.YTHClient, err error) {
 	conn, err := hst.connect(ctx, pid, mas)
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	sConn, cConn := ioStream.NewStreamHandler(conn)
 	go hst.srv.ServeConn(sConn)
 	clt := rpc.NewClient(cConn)
 
-	ytclt, err := client.WarpClient(clt, &peer.AddrInfo{
+	ytclt, err = client.WarpClient(clt, &peer.AddrInfo{
 		hst.cfg.ID,
 		hst.Addrs(),
 	}, hst.cfg.Privkey.GetPublic(), pid)
 
 	if nil != err {
-		return nil, err
+		return
 	}
 
-	go func() {
-		tryCount := 1
-		for {
-			if tryCount > 6 {
-				_ = sConn.Close()
-				_ = cConn.Close()
-				//_ = hst.clientStore.Close(ytclt.RemotePeerID)
-				//_ = connect.Close()
-				break
-			}else {
-				tryCount++
-			}
-			if ytclt != nil {
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-				defer cancel()
-				if ytclt.Ping(ctx) {
-					tryCount--
-					time.Sleep(time.Second*10)
-				}
-			}
-		}
-	}()
+	go hst.pingConn(sConn, cConn, ytclt)
 
-	return ytclt, nil
+	return
 }
 
 func (hst *host) connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (net.Conn, error) {
@@ -326,6 +330,7 @@ func (hst *host) connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 				if hst.cfg.Debug {
 					log.Println("conn error:", err)
 				}
+				return
 			}
 			//if conn, err := (&mnet.Dialer{}).DialContext(ctx, addr); err == nil {
 			if conn, err := reuse.Dial(lnet, lnsaddr, lndaddr); err == nil {
@@ -335,7 +340,7 @@ func (hst *host) connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 				}
 			} else {
 				if hst.cfg.Debug {
-					log.Println("conn error:", err)
+					log.Println("dial conn error:", err)
 				}
 			}
 		}(addr)
@@ -380,5 +385,5 @@ func (hst *host) SendMsg(ctx context.Context, pid peer.ID, mid int32, msg []byte
 	if !ok {
 		return nil, fmt.Errorf("no client ID is:%s", pid.Pretty())
 	}
-	return clt.SendMsg(ctx, mid, msg)
+	return clt.SendMsg(ctx, pid, mid, msg)
 }
