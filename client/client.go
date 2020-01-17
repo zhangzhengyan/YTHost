@@ -4,14 +4,14 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	ci "github.com/yottachain/YTHost/clientInterface"
-	"github.com/yottachain/YTHost/encrypt"
-	"github.com/yottachain/YTHost/service"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/mr-tron/base58"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/yottachain/YTCrypto"
+	ci "github.com/yottachain/YTHost/clientInterface"
+	"github.com/yottachain/YTHost/encrypt"
+	"github.com/yottachain/YTHost/service"
 	"golang.org/x/crypto/ripemd160"
 	"net/rpc"
 	//"github.com/yottachain/YTHost/rpc"
@@ -28,12 +28,12 @@ type YTHostClient struct {
 	DstID			peer.ID			//发送到的目标ID	如果不通过中继 RemotePeerID,DstID 相同 否则不同
 }
 
-func (yc *YTHostClient) RemotePeer() peer.AddrInfo {
+func (yc *YTHostClient) RemotePeer() (peer.AddrInfo, error) {
 	var pi service.PeerInfo
 	var ai peer.AddrInfo
 
 	if err := yc.Call("as.RemotePeerInfo", "", &pi); err != nil {
-		fmt.Println(err)
+		return ai, err
 	}
 	ai.ID = pi.ID
 	for _, addr := range pi.Addrs {
@@ -41,7 +41,7 @@ func (yc *YTHostClient) RemotePeer() peer.AddrInfo {
 		ai.Addrs = append(ai.Addrs, ma)
 	}
 
-	return ai
+	return ai, nil
 }
 
 func (yc *YTHostClient) RemotePeerPubkey() (crypto.PubKey, error) {
@@ -116,16 +116,17 @@ func WarpClient(clt *rpc.Client, pi *peer.AddrInfo, pk crypto.PubKey, DstID peer
 	yc.Client = clt
 	yc.localPeerID = pi.ID
 	yc.localPeerPubKey, _ = pk.Raw()
-	yc.RemotePeerID = yc.RemotePeer().ID
+
+	rAddrInfo, err := yc.RemotePeer()
+	if err != nil {
+		return nil, err
+	}
+	yc.RemotePeerID = rAddrInfo.ID
 
 	if DstID == peer.ID(0) {
 		yc.DstID = yc.RemotePeerID
 	}else {
 		yc.DstID = DstID
-	}
-
-	if yc.RemotePeerID.String() == "" {
-		return nil, fmt.Errorf("peer id is nil\n")
 	}
 
 	//fmt.Printf("peer ID:[%s]\n", yc.RemotePeerID.String())
@@ -135,7 +136,7 @@ func WarpClient(clt *rpc.Client, pi *peer.AddrInfo, pk crypto.PubKey, DstID peer
 	prikey,_ := msgprikey.Raw()
 	yc.msgPriKey =  prikey
 
-	err := yc.SendMsgPriKey()
+	err = yc.SendMsgPriKey()
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +149,7 @@ func WarpClient(clt *rpc.Client, pi *peer.AddrInfo, pk crypto.PubKey, DstID peer
 	return yc, nil
 }
 
-func (yc *YTHostClient) SendMsg(ctx context.Context, id int32, data []byte) ([]byte, error) {
+func (yc *YTHostClient) SendMsg(ctx context.Context, pid peer.ID, id int32, data []byte) ([]byte, error) {
 
 	resChan := make(chan service.Response)
 	errChan := make(chan error)
@@ -176,7 +177,7 @@ func (yc *YTHostClient) SendMsg(ctx context.Context, id int32, data []byte) ([]b
 		pi := service.PeerInfo{yc.localPeerID, yc.localPeerAddrs, yc.localPeerPubKey}
 
 		if err := yc.Call("ms.HandleMsg",
-			service.Request{id, aesData, pi, yc.DstID}, &res); err != nil {
+			service.Request{id, aesData, pi, pid}, &res); err != nil {
 			errChan <- err
 		} else {
 			resChan <- res
@@ -237,9 +238,9 @@ func (yc *YTHostClient) IsClosed() bool {
 	return yc.isClosed
 }
 
-func (yc *YTHostClient) SendMsgClose(ctx context.Context, id int32, data []byte) ([]byte, error) {
+func (yc *YTHostClient) SendMsgClose(ctx context.Context, pid peer.ID, id int32, data []byte) ([]byte, error) {
 	defer yc.Close()
-	return yc.SendMsg(ctx, id, data)
+	return yc.SendMsg(ctx, pid, id, data)
 }
 
 func (yc *YTHostClient) GetRemotePeerID() peer.ID {
