@@ -159,15 +159,21 @@ func (ms *MsgService) HandleMsg(req Request, data *Response) error {
 		lstr := ms.LocalPeerID.String()
 		if dstr != lstr {
 			//fmt.Printf("relay ID:[%s] transpond peer Id:[%s] msg:[%s]\n",
-			//	ms.LocalPeerID.String(), req.DstID.String(), string(reqData))
+			//ms.LocalPeerID.String(), req.DstID.String(), string(reqData))
+			//fmt.Println("----------------with relay-------------------------------------------")
 			resdata, err := ms.transpondMsg(req.DstID, req.MsgId, reqData)
 			if nil != err {
 				return err
 			}
-			data.Data = resdata
+			aesData, err := encrypt.AesCBCEncrypt(resdata, msgKey)
+			if err != nil {
+				return fmt.Errorf("respones AesCBCEncrypt msg error %x", err)
+			}
+			data.Data = aesData
 			return nil
 		}
 
+		//fmt.Println("no with relay-------------------------------------------")
 		if resdata, err := h(reqData, head); err != nil {
 			return nil
 		} else {
@@ -199,7 +205,7 @@ func (ms *MsgService) transpondMsg(DstID peer.ID, msgId int32, msg []byte) ([]by
 	c := _c.(ci.YTHClient)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
-	retData, err := c.SendMsg(ctx, msgId, msg)
+	retData, err := c.SendMsg(ctx, DstID, msgId, msg)
 	if nil != err {
 		return nil, fmt.Errorf("relay send msg to peer ID: [%x] fail\n", DstID)
 	}
