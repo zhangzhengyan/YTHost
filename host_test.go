@@ -759,6 +759,7 @@ func TestStrSplit(t *testing.T){
 }
 
 func TestRelayTransMsg(t *testing.T){
+	//测试
 	mastr := fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 9000)
 	ma, _ := multiaddr.NewMultiaddr(mastr)
 	hst1, err := host.NewHost(option.ListenAddr(ma), option.OpenPProf("127.0.0.1:8888"))
