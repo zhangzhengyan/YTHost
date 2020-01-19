@@ -200,14 +200,14 @@ func (ms *MsgService) transpondMsg(DstID peer.ID, msgId int32, msg []byte) ([]by
 	_c, ok := ms.ClientStore.Load(DstID)
 
 	if !ok {
-		return nil, fmt.Errorf("relay not connect with peer ID: [%x]\n", DstID)
+		return nil, fmt.Errorf("relay not connect with peer ID: [%s]\n", DstID.String())
 	}
 	c := _c.(ci.YTHClient)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
 	retData, err := c.SendMsg(ctx, DstID, msgId, msg)
 	if nil != err {
-		return nil, fmt.Errorf("relay send msg to peer ID: [%x] fail\n", DstID)
+		return nil, fmt.Errorf("relay send msg to peer ID: [%s] fail\n", DstID.String())
 	}
 	return  retData, nil
 }
