@@ -174,12 +174,12 @@ func (hst *host) Accept() {
 			}
 			tryCount := 1
 			var ytclt ci.YTHClient
+			var pid peer.ID
 			for {
 				if tryCount > 3 {
 					ytclt = nil
 					_ = sConn.Close()
 					_ = cConn.Close()
-
 					return
 				}else {
 					tryCount++
@@ -194,7 +194,7 @@ func (hst *host) Accept() {
 					continue
 				}
 
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+				/*ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 				defer cancel()
 				if ytclt.Ping(ctx) {
 					pid := ytclt.GetRemotePeerID()
@@ -204,21 +204,27 @@ func (hst *host) Accept() {
 					_ = sConn.Close()
 					_ = cConn.Close()
 					return
+				}*/
+
+				pid = ytclt.GetRemotePeerID()
+				_c, ok := hst.clientStore.Load(pid)
+				if ok {
+					c := _c.(ci.YTHClient)
+					ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+					defer cancel()
+					if c.Ping(ctx) {
+						_ = sConn.Close()
+						_ = cConn.Close()
+						return
+					}
 				}
 
-				/*pid := ytclt.GetRemotePeerID()
-				_, ok := hst.clientStore.Load(pid)
-				if ok {
-					_ = sConn.Close()
-					_ = cConn.Close()
-					return
-				}else {
-					hst.clientStore.Store(pid, ytclt)
-				}
-				break*/
+				hst.clientStore.Store(pid, ytclt)
+				break
 			}
 
 			hst.pingConn(sConn, cConn, ytclt)
+			hst.clientStore.Delete(pid)
 		}(sConn, cConn)
 	}
 }
