@@ -32,14 +32,13 @@ func NewStreamHandler(conn io.ReadWriteCloser) (sconn *ReadWriteCloser, cconn *R
 	buf := bufio.NewWriter(conn)
 
 	testCount ++
-	go func() {
-		connect := conn
+	go func(conn io.ReadWriteCloser, sconn *ReadWriteCloser, cconn *ReadWriteCloser) {
 		by := make([]byte, 16)
 		for {
 			if sconn.GetClose() == true || cconn.GetClose() == true {
 				sconn.SetReadErr()
 				cconn.SetReadErr()
-				_ = connect.Close()
+				_ = conn.Close()
 				return
 			}
 			f, _, msg, err := DecodeConn(conn, by)
@@ -63,7 +62,7 @@ func NewStreamHandler(conn io.ReadWriteCloser) (sconn *ReadWriteCloser, cconn *R
 				continue
 			}
 		}
-	}()
+	}(conn, sconn, cconn)
 
 	var WCfunc = func(l *sync.Mutex, conn *ReadWriteCloser, flag byte) {
 		msg := make([]byte, 2048 + 6)

@@ -305,19 +305,10 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 func (hst *host) connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (net.Conn, error) {
 	connChan := make(chan net.Conn)
 	errChan := make(chan error)
-	wg := sync.WaitGroup{}
-	wg.Add(len(mas))
 
-	lis, err := mnet.WrapNetListener(hst.listener)
-	if err != nil {
-		return nil, err
-	}
-	//port, err := hst.listener.Multiaddr().ValueForProtocol(multiaddr.P_TCP)
-	port, err := lis.Multiaddr().ValueForProtocol(multiaddr.P_TCP)
-	if err != nil {
-		return nil, err
-	}
-	lnsaddr := fmt.Sprintf(":%s", port)
+	lmadds := hst.Addrs()
+	wg := sync.WaitGroup{}
+	wg.Add(len(mas)*len(lmadds))
 
 	go func() {
 		wg.Wait()
@@ -328,30 +319,39 @@ func (hst *host) connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 		}
 	}()
 
-	for _, addr := range mas {
-		go func(addr multiaddr.Multiaddr) {
-			defer wg.Done()
-			lnet, lndaddr, err := mnet.DialArgs(addr)
-			if err != nil {
-				if hst.cfg.Debug {
-					log.Println("conn error:", err)
-				}
-				return
+	for _, lsaddr := range lmadds{
+		_, lsdaddr, err := mnet.DialArgs(lsaddr)
+		if err != nil {
+			if hst.cfg.Debug {
+				log.Println("conn error:", err)
 			}
-			//if conn, err := (&mnet.Dialer{}).DialContext(ctx, addr); err == nil {
-			if conn, err := reuse.Dial(lnet, lnsaddr, lndaddr); err == nil {
-				select {
-				case connChan <- conn:
-				case <-time.After(time.Second * 5):
-				}
-			} else {
-				if hst.cfg.Debug {
-					log.Println("dial conn error:", err)
-				}
-			}
-		}(addr)
-	}
+		}
 
+		for _, addr := range mas {
+			go func(addr multiaddr.Multiaddr) {
+				defer wg.Done()
+				lnet, lndaddr, err := mnet.DialArgs(addr)
+				if err != nil {
+					if hst.cfg.Debug {
+						log.Println("conn error:", err)
+					}
+					return
+				}
+				//if conn, err := (&mnet.Dialer{}).DialContext(ctx, addr); err == nil {
+				if conn, err := reuse.Dial(lnet, lsdaddr, lndaddr); err == nil {
+					select {
+					case connChan <- conn:
+					case <-time.After(time.Second * 5):
+					}
+				} else {
+					if hst.cfg.Debug {
+						log.Println("conn error:", err)
+					}
+				}
+			}(addr)
+		}
+	}
+	
 	for {
 		select {
 		case <-ctx.Done():
