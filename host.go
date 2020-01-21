@@ -227,7 +227,7 @@ func (hst *host) Accept() {
 			hst.pingConn(sConn, cConn, ytclt)
 			//ping 退出说明有段时间没ping通了 此时关闭连接
 			hst.ClientStore().Delete(pid)
-			hst.ClientStore().DelConnInfo(pid, ytclt)
+			_ = hst.ClientStore().DelConnInfo(pid, ytclt)
 			_ = sConn.Close()
 			_ = cConn.Close()
 		}(sConn, cConn)
