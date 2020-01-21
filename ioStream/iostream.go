@@ -64,7 +64,7 @@ func NewStreamHandler(conn io.ReadWriteCloser) (sconn *ReadWriteCloser, cconn *R
 		}
 	}(conn, sconn, cconn)
 
-	var WCfunc = func(l *sync.Mutex, conn *ReadWriteCloser, flag byte) {
+	var WCfunc = func(l *sync.Mutex, conn *ReadWriteCloser, flag byte, buf *bufio.Writer) {
 		msg := make([]byte, 2048 + 6)
 		for {
 			if conn.isClose == true {
@@ -89,8 +89,8 @@ func NewStreamHandler(conn io.ReadWriteCloser) (sconn *ReadWriteCloser, cconn *R
 		}
 	}
 
-	go WCfunc(&l, sconn, RPS)
-	go WCfunc(&l, cconn, RES)
+	go WCfunc(&l, sconn, RPS, buf)
+	go WCfunc(&l, cconn, RES, buf)
 
 	return
 }
