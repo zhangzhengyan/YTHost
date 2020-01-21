@@ -207,7 +207,7 @@ func (hst *host) Accept() {
 				}*/
 
 				pid = ytclt.GetRemotePeerID()
-				_c, ok := hst.clientStore.Load(pid)
+				_c, ok := hst.ClientStore().Load(pid)
 				if ok {
 					c := _c.(ci.YTHClient)
 					ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
@@ -219,12 +219,17 @@ func (hst *host) Accept() {
 					}
 				}
 
-				hst.clientStore.Store(pid, ytclt)
+				hst.ClientStore().Store(pid, ytclt)
+				hst.ClientStore().StoreConnInfo(pid, ytclt)
 				break
 			}
 
 			hst.pingConn(sConn, cConn, ytclt)
-			hst.clientStore.Delete(pid)
+			//ping 退出说明有段时间没ping通了 此时关闭连接
+			hst.ClientStore().Delete(pid)
+			hst.ClientStore().DelConnInfo(pid, ytclt)
+			_ = sConn.Close()
+			_ = cConn.Close()
 		}(sConn, cConn)
 	}
 }

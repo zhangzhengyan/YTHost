@@ -49,7 +49,7 @@ start:
 			if ok {
 				c := cli.(ci.YTHClient)
 				cs.Map.Store(pid, c)
-				cs.storeConnInfo(pid, c)
+				cs.StoreConnInfo(pid, c)
 				return c, nil
 			}
 		}
@@ -58,10 +58,10 @@ start:
 			return nil, err
 		} else {
 			cs.Map.Store(pid, clt)
-			cs.storeConnInfo(pid, clt)
+			cs.StoreConnInfo(pid, clt)
 			if relayID.String() != "" {
 				cs.Map.Store(relayID, clt)
-				cs.storeConnInfo(pid, clt)
+				cs.StoreConnInfo(pid, clt)
 			}
 			// 创建clt完成后返回到开始
 			goto start
@@ -108,7 +108,7 @@ func (cs *ClientStore) Close(pid peer.ID) error {
 
 	cs.Map.Delete(pid)
 
-	return cs.delConnInfo(pid, clt)
+	return cs.DelConnInfo(pid, clt)
 	//return clt.Close()
 }
 
@@ -122,7 +122,7 @@ func (cs *ClientStore) GetClient(pid peer.ID) (ci.YTHClient, bool) {
 	return nil, ok
 }
 
-func (cs *ClientStore) storeConnInfo(pid peer.ID, clt ci.YTHClient) () {
+func (cs *ClientStore) StoreConnInfo(pid peer.ID, clt ci.YTHClient) () {
 	cs.l.Lock()
 	defer cs.l.Unlock()
 	pids, ok := cs.connTopid[clt]
@@ -136,7 +136,7 @@ func (cs *ClientStore) storeConnInfo(pid peer.ID, clt ci.YTHClient) () {
 	}
 }
 
-func (cs *ClientStore) delConnInfo(pid peer.ID, clt ci.YTHClient) error {
+func (cs *ClientStore) DelConnInfo(pid peer.ID, clt ci.YTHClient) error {
 	cs.l.Lock()
 	defer cs.l.Unlock()
 	pids, ok := cs.connTopid[clt]
