@@ -224,12 +224,12 @@ func (hst *host) Accept() {
 				break
 			}
 
-			hst.pingConn(sConn, cConn, ytclt)
+			//hst.pingConn(sConn, cConn, ytclt)
 			//ping 退出说明有段时间没ping通了 此时关闭连接
-			hst.ClientStore().Delete(pid)
-			_ = hst.ClientStore().DelConnInfo(pid, ytclt)
-			_ = sConn.Close()
-			_ = cConn.Close()
+			//hst.ClientStore().Delete(pid)
+			//_ = hst.ClientStore().DelConnInfo(pid, ytclt)
+			//_ = sConn.Close()
+			//_ = cConn.Close()
 		}(sConn, cConn)
 	}
 }
@@ -302,7 +302,7 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 		return
 	}
 
-	go hst.pingConn(sConn, cConn, ytclt)
+	//go hst.pingConn(sConn, cConn, ytclt)
 
 	return
 }

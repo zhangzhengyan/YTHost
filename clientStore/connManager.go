@@ -71,6 +71,7 @@ start:
 		c := _c.(ci.YTHClient)
 		if c.IsClosed() || !c.Ping(ctx) {
 			cs.Map.Delete(pid)
+			cs.DelConnInfo(pid, c)
 			goto start
 		}
 

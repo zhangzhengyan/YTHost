@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"sync"
 )
 
@@ -47,8 +46,8 @@ func NewStreamHandler(conn io.ReadWriteCloser) (sconn *ReadWriteCloser, cconn *R
 			//fmt.Printf("count:%d" + "----msg:" + string(msg) + "\n", testCount)
 			if err != nil  {
 				if err == io.EOF {
-					log.Println(err)
-					fmt.Println(err)
+					//log.Println(err)
+					//fmt.Println(err)
 					_ = sconn.Close()
 					_ = cconn.Close()
 				}
