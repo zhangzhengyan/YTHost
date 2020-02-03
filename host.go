@@ -135,7 +135,7 @@ func (hst *host) Accept() {
 	msgService := new(service.MsgService)
 	msgService.Handler = hst.HandlerMap
 	msgService.LocalPriKey = hst.cfg.Privkey
-	msgService.Pi = peerInfo.PeerInfo{hst.cfg.ID, hst.Addrs()}
+	msgService.Pi = peerInfo.PeerInfo{ID: hst.cfg.ID, Addrs: hst.Addrs()}
 	msgService.ClientStore = hst.clientStore
 	msgService.LocalPeerID = hst.cfg.ID
 
@@ -162,14 +162,13 @@ func (hst *host) Accept() {
 			return
 		}
 
-		//go hst.srv.ServeConn(conn)
-		sConn, cConn := ioStream.NewStreamHandler(conn)
+		sConn, cConn := ioStream.NewStreamHandler(conn, true)
 		go hst.srv.ServeConn(sConn)
 
 		go func(sConn *ioStream.ReadWriteCloser, cConn *ioStream.ReadWriteCloser) {
-			//connect := conn
 			clt := rpc.NewClient(cConn)
 			if nil == clt {
+				fmt.Println("new rpc client fail")
 				return
 			}
 			tryCount := 1
@@ -185,12 +184,13 @@ func (hst *host) Accept() {
 					tryCount++
 				}
 				ytclt, err = client.WarpClient(clt, &peer.AddrInfo{
-					hst.cfg.ID,
-					hst.Addrs(),
+					ID:    hst.cfg.ID,
+					Addrs: hst.Addrs(),
 				}, hst.cfg.Privkey.GetPublic(), peer.ID(0))			//这种情况目标ID就是remoteID
 
 				if nil != err {
 					fmt.Println("rpc.Serve: accept conn warpClient:", err.Error())
+					//time.Sleep(time.Millisecond*100)
 					continue
 				}
 
@@ -289,13 +289,13 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 		return
 	}
 
-	sConn, cConn := ioStream.NewStreamHandler(conn)
+	sConn, cConn := ioStream.NewStreamHandler(conn, true)
 	go hst.srv.ServeConn(sConn)
 	clt := rpc.NewClient(cConn)
 
 	ytclt, err = client.WarpClient(clt, &peer.AddrInfo{
-		hst.cfg.ID,
-		hst.Addrs(),
+		ID:    hst.cfg.ID,
+		Addrs: hst.Addrs(),
 	}, hst.cfg.Privkey.GetPublic(), pid)
 
 	if nil != err {
@@ -308,15 +308,31 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 }
 
 func (hst *host) connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (net.Conn, error) {
-	connChan := make(chan net.Conn)
-	errChan := make(chan error)
-
 	lmadds := hst.Addrs()
+	wgLen := len(mas)*len(lmadds)
 	wg := sync.WaitGroup{}
-	wg.Add(len(mas)*len(lmadds))
+	wg.Add(wgLen)
+	connChan := make(chan net.Conn, wgLen)
+	errChan := make(chan error)
+	conned := make(chan bool, 2)
 
 	go func() {
 		wg.Wait()
+		clen := len(connChan)
+		if clen > 0 {
+			<- conned
+			clen := len(connChan)
+			for i := 0; i < clen; i++ {
+				c := <-connChan
+				_ = c.Close()
+			}
+		}
+
+		select {
+		case <- conned:
+		case <-time.After(time.Millisecond * 500):
+		}
+
 		select {
 		case errChan <- fmt.Errorf("dail all maddr fail"):
 		case <-time.After(time.Millisecond * 500):
@@ -362,6 +378,7 @@ func (hst *host) connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 		case <-ctx.Done():
 			return nil, fmt.Errorf("ctx quit")
 		case conn := <-connChan:
+			conned <- true
 			return conn, nil
 		case err := <-errChan:
 			return nil, err

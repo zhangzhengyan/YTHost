@@ -4,14 +4,14 @@ import (
 	"context"
 	ra "crypto/rand"
 	"fmt"
+	ic "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/mr-tron/base58"
+	"github.com/multiformats/go-multiaddr"
 	host "github.com/yottachain/YTHost"
 	ci "github.com/yottachain/YTHost/clientInterface"
 	. "github.com/yottachain/YTHost/hostInterface"
 	"github.com/yottachain/YTHost/option"
 	"github.com/yottachain/YTHost/service"
-	ic "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/mr-tron/base58"
-	"github.com/multiformats/go-multiaddr"
 	"math/rand"
 	"net"
 	"strings"
@@ -24,8 +24,8 @@ import (
 func TestNewHost(t *testing.T) {
 	var localMa2 = "/ip4/0.0.0.0/tcp/9003"
 
-	pk , _, _ := ic.GenerateSecp256k1Key(ra.Reader)		//option Identity cover
-	ma, _ := multiaddr.NewMultiaddr(localMa2)			// option listenaddr cover
+	pk, _, _ := ic.GenerateSecp256k1Key(ra.Reader) //option Identity cover
+	ma, _ := multiaddr.NewMultiaddr(localMa2)      // option listenaddr cover
 	if hst, err := host.NewHost(option.ListenAddr(ma), option.Identity(pk)); err != nil {
 		t.Fatal(err)
 	} else {
@@ -172,7 +172,7 @@ func TestGlobalHandleMsg(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if res, err := clt.SendMsg(context.Background(),hst.Config().ID, 0x11, []byte("2222")); err != nil {
+	if res, err := clt.SendMsg(context.Background(), hst.Config().ID, 0x11, []byte("2222")); err != nil {
 		t.Fatal(err)
 	} else {
 		t.Log(string(res))
@@ -211,7 +211,7 @@ func TestGlobalHandleMsgClose(t *testing.T) {
 	} else {
 		t.Fatal("ping fail")
 	}
-	if res, err := clt.SendMsgClose(context.Background(), hst.Config().ID,0x11, []byte("2222")); err != nil {
+	if res, err := clt.SendMsgClose(context.Background(), hst.Config().ID, 0x11, []byte("2222")); err != nil {
 		t.Fatal(err)
 	} else {
 		t.Log(string(res))
@@ -305,7 +305,7 @@ func TestMutlConn(t *testing.T) {
 	var count int64 = 0
 
 	hst.RegisterGlobalMsgHandler(func(requestData []byte, head service.Head) (bytes []byte, e error) {
-		count =  count+1
+		count = count + 1
 		//fmt.Println(fmt.Sprintf("msg num is %d", count), string(requestData))
 		fmt.Println(fmt.Sprintf("msg num is %d", count))
 		return []byte("111111111111"), nil
@@ -338,7 +338,7 @@ func TestMutlConn(t *testing.T) {
 		if err != nil {
 			t.Log(err.Error())
 			continue
-		}else{
+		} else {
 			fmt.Println(connSilce[j].LocalPeer())
 		}
 
@@ -350,15 +350,15 @@ func TestMutlConn(t *testing.T) {
 				case <-ctx.Done():
 					return nil
 				default:
-						ctx_local, cancel_local := context.WithTimeout(context.Background(), time.Second*10)
-						defer cancel_local()
-						_, err := (*conn).SendMsg(ctx_local,  hstcSilce[j].Config().ID, 0x0, []byte("111111111"))
-						if err != nil {
-							fmt.Println(err)
-						} else {
-							fmt.Printf("conn[%d] send succeed\n", index)
-						}
-						time.Sleep(time.Second * 2)
+					ctx_local, cancel_local := context.WithTimeout(context.Background(), time.Second*10)
+					defer cancel_local()
+					_, err := (*conn).SendMsg(ctx_local, hstcSilce[j].Config().ID, 0x0, []byte("111111111"))
+					if err != nil {
+						fmt.Println(err)
+					} else {
+						fmt.Printf("conn[%d] send succeed\n", index)
+					}
+					time.Sleep(time.Second * 2)
 				}
 			}
 		}(ctx1, &connSilce[j], j)
@@ -414,7 +414,7 @@ func TestMutlConn(t *testing.T) {
 
 	//wg.Wait()
 	for {
-		time.Sleep(time.Second*1)
+		time.Sleep(time.Second * 1)
 	}
 }
 
@@ -429,7 +429,7 @@ func TestMutlConn111(t *testing.T) {
 	var count uint64 = 0
 
 	hst.RegisterGlobalMsgHandler(func(requestData []byte, head service.Head) (bytes []byte, e error) {
-		count =  count+1
+		count = count + 1
 		//fmt.Println(fmt.Sprintf("msg num is %d", count), string(requestData))
 		fmt.Println(fmt.Sprintf("msg num is %d", count))
 		return []byte("111111111111"), nil
@@ -441,24 +441,24 @@ func TestMutlConn111(t *testing.T) {
 	//hstcSilce := make([]Host, lenth)
 	connSilce := make([]ci.YTHClient, lenth)
 
-	for k,_:=range connSilce{
-		ma,_:=multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d",13000+k))
-		h,err:=host.NewHost(option.ListenAddr(ma))
+	for k, _ := range connSilce {
+		ma, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 13000+k))
+		h, err := host.NewHost(option.ListenAddr(ma))
 		if err != nil {
 			fmt.Println(err)
 		} else {
-			conn, _:=h.Connect(context.Background(),hst.Config().ID,hst.Addrs())
-			connSilce[k]=conn
+			conn, _ := h.Connect(context.Background(), hst.Config().ID, hst.Addrs())
+			connSilce[k] = conn
 		}
-		time.After(time.Millisecond*100)
+		time.After(time.Millisecond * 100)
 	}
 
 	for {
-		wg:=sync.WaitGroup{}
+		wg := sync.WaitGroup{}
 		wg.Add(lenth)
-		for _,c:=range connSilce {
+		for _, c := range connSilce {
 			go func() {
-				if c==nil{
+				if c == nil {
 					return
 				}
 				ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
@@ -485,7 +485,7 @@ func TestMutlconcurrentConn(t *testing.T) {
 	var count int64 = 0
 
 	hst.RegisterGlobalMsgHandler(func(requestData []byte, head service.Head) (bytes []byte, e error) {
-		count =  count+1
+		count = count + 1
 		//fmt.Println(fmt.Sprintf("msg num is %d", count), string(requestData))
 		fmt.Println(fmt.Sprintf("msg num is %d", count))
 		return []byte("111111111111"), nil
@@ -522,14 +522,14 @@ func TestMutlconcurrentConn(t *testing.T) {
 		wg := sync.WaitGroup{}
 		if curEndPos < lenth {
 			stepSize = concurNum
-		}else {
+		} else {
 			stepSize = lenth - i
 		}
 		wg.Add(stepSize)
 
-		for j := i; j < i + stepSize; j++ {
+		for j := i; j < i+stepSize; j++ {
 			idx := j
-			go func(conn *ci.YTHClient, host *Host){
+			go func(conn *ci.YTHClient, host *Host) {
 				defer wg.Done()
 				ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 				defer cancel()
@@ -537,11 +537,11 @@ func TestMutlconcurrentConn(t *testing.T) {
 				if nil != err {
 					fmt.Printf("conn[%d] fail !!!\n", idx)
 					return
-				}else {
+				} else {
 					fmt.Printf("conn[%d] succeed !\n", idx)
 				}
 				// 立即发送一条消息
-				_, err := (*conn).SendMsg(ctx, hst.Config().ID,0x0, []byte("111111111"))
+				_, err := (*conn).SendMsg(ctx, hst.Config().ID, 0x0, []byte("111111111"))
 				if err != nil {
 					fmt.Println(err)
 				} else {
@@ -564,7 +564,7 @@ func TestMutlconcurrentConn(t *testing.T) {
 			for {
 				ctx_local, cancel_local := context.WithTimeout(context.Background(), time.Second*10)
 				defer cancel_local()
-				_, err := conn.SendMsg(ctx_local, hst.Config().ID,0x0, []byte("111111111"))
+				_, err := conn.SendMsg(ctx_local, hst.Config().ID, 0x0, []byte("111111111"))
 				if err != nil {
 					fmt.Println(err)
 				} else {
@@ -577,7 +577,7 @@ func TestMutlconcurrentConn(t *testing.T) {
 	}
 
 	for {
-		time.Sleep(time.Second*1)
+		time.Sleep(time.Second * 1)
 	}
 }
 
@@ -602,7 +602,7 @@ func TestSendTimeOut(t *testing.T) {
 	var count int64 = 0
 
 	hst.RegisterGlobalMsgHandler(func(requestData []byte, head service.Head) (bytes []byte, e error) {
-		count =  count+1
+		count = count + 1
 		fmt.Println(fmt.Sprintf("msg num is %d", count))
 		//time.Sleep(time.Second*220)
 		fmt.Println(fmt.Sprintf("msg return..................."))
@@ -620,7 +620,7 @@ func TestSendTimeOut(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if res, err := clt.SendMsg(context.Background(), hst.Config().ID,0x0, []byte("22222222223333333333333333")); err != nil {
+	if res, err := clt.SendMsg(context.Background(), hst.Config().ID, 0x0, []byte("22222222223333333333333333")); err != nil {
 		t.Fatal(err)
 	} else {
 		fmt.Println(string(res))
@@ -710,7 +710,7 @@ func TestMutlConnCrypt(t *testing.T) {
 		if err != nil {
 			t.Log(err.Error())
 			continue
-		}else{
+		} else {
 			//fmt.Println(connSilce[j].LocalPeer())
 		}
 	}
@@ -734,7 +734,7 @@ func TestMutlConnCrypt(t *testing.T) {
 				fmt.Println(string(ret))
 			}
 
-			time.Sleep(time.Second*5)
+			time.Sleep(time.Second * 5)
 		}
 	}
 
@@ -743,7 +743,7 @@ func TestMutlConnCrypt(t *testing.T) {
 	}*/
 }
 
-func TestStrSplit(t *testing.T){
+func TestStrSplit(t *testing.T) {
 	str := "/ip4/152.136.198.134/tcp/9001/p2p/16Uiu2HAm3txKmVThw2xVge7vqV2zhev4nd1m2Tt9cQV1pbUxh4HJ/p2p-circuit/"
 	//str := "/ip4/152.136.198.134/tcp/9001/p2p/"
 	strSplics := strings.Split(str, "/")
@@ -752,7 +752,7 @@ func TestStrSplit(t *testing.T){
 	indx := 0
 	for i, v := range strSplics {
 		indx = i
-		if "" != v  {
+		if "" != v {
 			if "p2p" == v {
 				break
 			}
@@ -760,14 +760,14 @@ func TestStrSplit(t *testing.T){
 			dStr = dStr + v + "/"
 		}
 	}
-	if lenth != indx + 1 {
+	if lenth != indx+1 {
 		fmt.Println(strSplics[indx+1])
 	}
 	//dStr = "/" + dStr
 	fmt.Println(dStr)
 }
 
-func TestRelayTransMsg(t *testing.T){
+func TestRelayTransMsg(t *testing.T) {
 	mastr := fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 9000)
 	ma, _ := multiaddr.NewMultiaddr(mastr)
 	hst1, err := host.NewHost(option.ListenAddr(ma), option.OpenDebug(), option.OpenPProf("127.0.0.1:8888"))
@@ -814,7 +814,6 @@ func TestRelayTransMsg(t *testing.T){
 		panic(err)
 	}
 
-
 	ctx, cancel = context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
 	_, err = hst3.ClientStore().Get(ctx, hst2.Config().ID, hst2.Addrs())
@@ -845,21 +844,21 @@ func TestRelayTransMsg(t *testing.T){
 	}
 
 	go func() {
-		time.Sleep(time.Second*60)
+		time.Sleep(time.Second * 60)
 		_ = hst1.ClientStore().Close(hst3.Config().ID)
 		cltt1 = nil
-		time.Sleep(time.Second*60)
+		time.Sleep(time.Second * 60)
 		mastr = "/ip4/127.0.0.1/tcp/9001/p2p/" + hst2.Config().ID.String() + "/p2p-circuit/"
 		maddrs := make([]multiaddr.Multiaddr, 1)
 		maddrs[0], err = multiaddr.NewMultiaddr(mastr)
 
-		time.Sleep(time.Second*3)
+		time.Sleep(time.Second * 3)
 		ctx, cancel = context.WithTimeout(context.Background(), time.Second*60)
 		defer cancel()
 		clt1, err = hst1.ClientStore().Get(ctx, hst3.Config().ID, maddrs)
 		if err != nil {
 			fmt.Println(err)
-		}else {
+		} else {
 			cltt1 = &clt1
 		}
 	}()
@@ -875,10 +874,10 @@ func TestRelayTransMsg(t *testing.T){
 			"daskfjpqejwogeoqnbqdkjdkjklajfdljfalksjfkjdsaklfjlkdajsfkldjslkfjasjfladsjlfj111111111111ddddddddddd\n" +
 			"d22222222askfjpqejwogeoqnbqdkjdkjklajfdljfalksjfkjdsaklfjlkdajsfkl3333333djslkfjasjfladsjlfj\n" +
 			"vczvlkcjxvljkzcl;xjvk;cjv;lzkcxj;lvkfgagsdgggggggggggggggggggggggggggggggggggggvcbxbbxzcz3333bxc\n" +
-			"vczvlkcjxvljkzcl;xjvk;cjv;lzkcxj;lvkfgagsdgggggggggggggggggggggggggggggggggggggvcbxbbxzczbxc\n" +
+			"vczvlkcjxvljkzcl;xjvk;cjv;lzkcxj.;lvkfgagsdgggggggggggggggggggggggggggggggggggggvcbxbbxzczbxc\n" +
 			"daskfjpqejwogeoqnbqdkjdkjklajfdljfalksjfkjdsaklfjlkdajsfkldjslkfjasjfladsjlfj111111111111ddddddddddd")
 		if (cltt1 != nil) && (*cltt1) != nil && (!(*cltt1).IsClosed()) {
-			ret, err := (*cltt1).SendMsg(ctx1, hst3ID,0x0, msg1)
+			ret, err := (*cltt1).SendMsg(ctx1, hst3ID, 0x0, msg1)
 			if err != nil {
 				fmt.Println(err)
 			} else {
@@ -904,17 +903,17 @@ func TestRelayTransMsg(t *testing.T){
 			}
 		}
 
-		time.Sleep(time.Second*2)
+		time.Sleep(time.Second * 2)
 	}
 
-	for{
-		time.Sleep(time.Second*60)
+	for {
+		time.Sleep(time.Second * 60)
 		break
 	}
 
 }
 
-func TestRelayTransMsg1(t *testing.T){
+func TestRelayTransMsg1(t *testing.T) {
 	mastr := fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 9000)
 	ma, _ := multiaddr.NewMultiaddr(mastr)
 	hst1, err := host.NewHost(option.ListenAddr(ma), option.OpenPProf("127.0.0.1:8888"))
@@ -931,12 +930,10 @@ func TestRelayTransMsg1(t *testing.T){
 	}
 	go hst2.Accept()
 
-
 	hst2.RegisterGlobalMsgHandler(func(requestData []byte, head service.Head) (bytes []byte, e error) {
 		fmt.Println(fmt.Sprintf("msg is [%s]", string(requestData)))
 		return []byte("receice----hst2------hst2------hst2------succeed!"), nil
 	})
-
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
@@ -953,7 +950,6 @@ func TestRelayTransMsg1(t *testing.T){
 		panic(err)
 	}
 
-
 	for i := 0; i < 1000; i++ {
 		ctx1, cancel1 := context.WithTimeout(context.Background(), time.Second*60)
 		defer cancel1()
@@ -966,24 +962,24 @@ func TestRelayTransMsg1(t *testing.T){
 			"vczvlkcjxvljkzcl;xjvk;cjv;lzkcxj;lvkfgagsdgggggggggggggggggggggggggggggggggggggvcbxbbxzczbxc\n" +
 			"daskfjpqejwogeoqnbqdkjdkjklajfdljfalksjfkjdsaklfjlkdajsfkldjslkfjasjfladsjlfj111111111111ddddddddddd")
 
-		ret, err := clt.SendMsg(ctx1, hst2.Config().ID,0x0, msg1)
+		ret, err := clt.SendMsg(ctx1, hst2.Config().ID, 0x0, msg1)
 		if err != nil {
 			fmt.Println(err)
 		} else {
 			fmt.Println(string(ret))
 		}
 
-		time.Sleep(time.Second*2)
+		time.Sleep(time.Second * 2)
 	}
 
-	for{
-		time.Sleep(time.Second*60)
+	for {
+		time.Sleep(time.Second * 60)
 		break
 	}
 
 }
 
-func TestRelayTransMsg2(t *testing.T){
+func TestRelayTransMsg2(t *testing.T) {
 	mastr := fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 9000)
 	ma, _ := multiaddr.NewMultiaddr(mastr)
 	hst1, err := host.NewHost(option.ListenAddr(ma), option.OpenPProf("127.0.0.1:8888"))
@@ -994,11 +990,20 @@ func TestRelayTransMsg2(t *testing.T){
 
 	mastr = fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 9001)
 	ma, _ = multiaddr.NewMultiaddr(mastr)
-	hst2, err := host.NewHost(option.ListenAddr(ma),  option.OpenPProf("127.0.0.1:8889"))
+	hst2, err := host.NewHost(option.ListenAddr(ma), option.OpenPProf("127.0.0.1:8889"))
 	if err != nil {
 		panic(err)
 	}
 	go hst2.Accept()
+
+	maddrs := hst2.Addrs()
+	addrs := make([]string, len(maddrs))
+	for k, m := range maddrs {
+		addrs[k] = m.String()
+	}
+	for _, addr := range addrs {
+		fmt.Println(addr)
+	}
 
 	mastr = fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 9002)
 	ma, _ = multiaddr.NewMultiaddr(mastr)
@@ -1018,9 +1023,15 @@ func TestRelayTransMsg2(t *testing.T){
 		return []byte("receice----hst2------hst2------hst2------succeed!"), nil
 	})
 
+	//mastr = "/ip4/127.0.0.1/tcp/9001/"
+	mastr = "/ip4/192.168.3.182/tcp/9001/"
+	//mastr = "/ip4/172.17.32.8/tcp/9001/"
+	maddrs = make([]multiaddr.Multiaddr, 1)
+	maddrs[0], err = multiaddr.NewMultiaddr(mastr)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
-	clt1, err := hst1.ClientStore().Get(ctx, hst2.Config().ID, hst2.Addrs())
+	//clt1, err := hst1.ClientStore().Get(ctx, hst2.Config().ID, hst2.Addrs())
+	clt1, err := hst1.ClientStore().Get(ctx, hst2.Config().ID, maddrs)
 	if nil != err {
 		panic(err)
 	}
@@ -1036,8 +1047,10 @@ func TestRelayTransMsg2(t *testing.T){
 	hst3.ClientStore().PrintConnInfo(clt2)
 	fmt.Println("---------------------------")
 
-	mastr = "/ip4/127.0.0.1/tcp/9001/p2p/" + hst2.Config().ID.String() + "/p2p-circuit/"
-	maddrs := make([]multiaddr.Multiaddr, 1)
+	//mastr = "/ip4/127.0.0.1/tcp/9001/p2p/" + hst2.Config().ID.String() + "/p2p-circuit/"
+	mastr = "/ip4/192.168.3.182/tcp/9001/p2p/" + hst2.Config().ID.String() + "/p2p-circuit/"
+	//mastr = "/ip4/172.17.32.8/tcp/9001/p2p/" + hst2.Config().ID.String() + "/p2p-circuit/"
+	maddrs = make([]multiaddr.Multiaddr, 1)
 	maddrs[0], err = multiaddr.NewMultiaddr(mastr)
 	ctx, cancel = context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
@@ -1054,14 +1067,44 @@ func TestRelayTransMsg2(t *testing.T){
 	hst1.ClientStore().PrintConnInfo(clt3)
 	fmt.Println("---------------------------")
 
-	for{
-		time.Sleep(time.Second*60)
+	_ = hst1.ClientStore().Close(hst3.Config().ID)
+	hst1.ClientStore().PrintConnInfo(clt3)
+	fmt.Println("---------------------------")
+
+	mastr = "/ip4/192.168.3.182/tcp/9001/p2p/" + hst2.Config().ID.String() + "/p2p-circuit/"
+	//mastr ="/ip4/172.17.32.8/tcp/9001/p2p/" + hst2.Config().ID.String() + "/p2p-circuit/"
+	maddrs = make([]multiaddr.Multiaddr, 1)
+	maddrs[0], err = multiaddr.NewMultiaddr(mastr)
+
+	for i := 0; i < 1000; i++ {
+		ctx, cancel = context.WithTimeout(context.Background(), time.Second*600)
+		defer cancel()
+		_, err = hst1.ClientStore().Get(ctx, hst3.Config().ID, maddrs)
+
+		if nil != err {
+			time.Sleep(time.Second * 1)
+			//panic(err)
+			fmt.Println("try again")
+		} else {
+			fmt.Println("connect succeed")
+			break
+		}
+	}
+	if nil != err {
+		panic(err)
+	}
+
+	_ = hst3.ClientStore().Close(hst2.Config().ID)
+	_ = hst1.ClientStore().Close(hst3.Config().ID)
+
+	for {
+		time.Sleep(time.Second * 60)
 		break
 	}
 
 }
 
-func TestRelayTransMsg3(t *testing.T){
+func TestRelayTransMsg3(t *testing.T) {
 	mastr := fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 9000)
 	ma, _ := multiaddr.NewMultiaddr(mastr)
 	hst1, err := host.NewHost(option.ListenAddr(ma), option.OpenPProf("127.0.0.1:8888"))
@@ -1072,7 +1115,7 @@ func TestRelayTransMsg3(t *testing.T){
 
 	mastr = fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 9001)
 	ma, _ = multiaddr.NewMultiaddr(mastr)
-	hst2, err := host.NewHost(option.ListenAddr(ma), option.OpenDebug() ,option.OpenPProf("127.0.0.1:8889"))
+	hst2, err := host.NewHost(option.ListenAddr(ma), option.OpenDebug(), option.OpenPProf("127.0.0.1:8889"))
 	if err != nil {
 		panic(err)
 	}
@@ -1105,29 +1148,113 @@ func TestRelayTransMsg3(t *testing.T){
 		//fmt.Println(rid.String()+"aaaaaaaaaaaaaaa")
 	}
 
-	ctx1, cancel1 := context.WithTimeout(context.Background(), time.Second*60)
-	defer cancel1()
 	msg1 := []byte("1111111111111111111111111")
 	msg2 := []byte("22222222222222222222222222")
-	for i := 0 ; i < 1000; i++ {
-		ret, err := clt1.SendMsg(ctx1, hst2.Config().ID,0x0, msg1)
+	for i := 0; i < 1000; i++ {
+		ctx1, cancel1 := context.WithTimeout(context.Background(), time.Second*60)
+		defer cancel1()
+		ret, err := clt1.SendMsg(ctx1, hst2.Config().ID, 0x0, msg1)
 		if err != nil {
 			fmt.Println(err)
 		} else {
 			fmt.Println(string(ret))
 		}
-		time.Sleep(time.Second*1)
-		ret, err = clt2.SendMsg(ctx1, hst1.Config().ID,0x0, msg2)
+		time.Sleep(time.Second * 1)
+		ret, err = clt2.SendMsg(ctx1, hst1.Config().ID, 0x0, msg2)
 		if err != nil {
 			fmt.Println(err)
 		} else {
 			fmt.Println(string(ret))
 		}
-		time.Sleep(time.Second*1)
+		time.Sleep(time.Second * 1)
 	}
 
-	for{
-		time.Sleep(time.Second*60)
+	for {
+		time.Sleep(time.Second * 60)
+		break
+	}
+
+}
+
+func TestRelayTransMsg4(t *testing.T) {
+	mastr := fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 9000)
+	ma, _ := multiaddr.NewMultiaddr(mastr)
+	hst1, err := host.NewHost(option.ListenAddr(ma), option.OpenPProf("127.0.0.1:8888"))
+	if err != nil {
+		panic(err)
+	}
+	go hst1.Accept()
+
+	mastr = fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 9001)
+	ma, _ = multiaddr.NewMultiaddr(mastr)
+	hst2, err := host.NewHost(option.ListenAddr(ma), option.OpenPProf("127.0.0.1:8889"))
+	if err != nil {
+		panic(err)
+	}
+	go hst2.Accept()
+
+	maddrs := hst2.Addrs()
+	addrs := make([]string, len(maddrs))
+	for k, m := range maddrs {
+		addrs[k] = m.String()
+	}
+	for _, addr := range addrs {
+		fmt.Println(addr)
+	}
+
+	fmt.Println(hst1.Config().ID.String())
+	fmt.Println(hst2.Config().ID.String())
+
+	hst2.RegisterGlobalMsgHandler(func(requestData []byte, head service.Head) (bytes []byte, e error) {
+		fmt.Println(fmt.Sprintf("msg is [%s]", string(requestData)))
+		return []byte("receice----hst2------hst2------hst2------succeed!"), nil
+	})
+
+	//mastr = "/ip4/127.0.0.1/tcp/9001/"
+	mastr = "/ip4/192.168.3.182/tcp/9001/"
+	//mastr = "/ip4/172.17.32.8/tcp/9001/"
+	maddrs = make([]multiaddr.Multiaddr, 1)
+	maddrs[0], err = multiaddr.NewMultiaddr(mastr)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*600)
+	defer cancel()
+	clt1, err := hst1.ClientStore().Get(ctx, hst2.Config().ID, hst2.Addrs())
+	//clt1, err := hst1.ClientStore().Get(ctx, hst2.Config().ID, maddrs)
+	if nil != err {
+		panic(err)
+	}
+	hst1.ClientStore().PrintConnInfo(clt1)
+	fmt.Println("---------------------------")
+
+	_ = hst1.ClientStore().Close(hst2.Config().ID)
+	hst1.ClientStore().PrintConnInfo(clt1)
+	fmt.Println("---------------------------")
+
+	mastr = "/ip4/192.168.3.182/tcp/9001/"
+	//mastr = "/ip4/172.17.32.8/tcp/9001/"
+	maddrs = make([]multiaddr.Multiaddr, 1)
+	maddrs[0], err = multiaddr.NewMultiaddr(mastr)
+
+	for i := 0; i < 1000; i++ {
+		ctx, cancel = context.WithTimeout(context.Background(), time.Second*6)
+		defer cancel()
+		//_, err = hst1.ClientStore().Get(ctx, hst2.Config().ID, maddrs)
+		_, err = hst1.ClientStore().Get(ctx, hst2.Config().ID, hst2.Addrs())
+
+		if nil != err {
+			time.Sleep(time.Second * 1)
+			//panic(err)
+			fmt.Println("try again")
+		} else {
+			fmt.Println("connect succeed")
+			break
+		}
+	}
+	if nil != err {
+		panic(err)
+	}
+
+	for {
+		//time.Sleep(time.Second * 60)
 		break
 	}
 

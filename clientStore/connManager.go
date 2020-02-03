@@ -61,7 +61,7 @@ start:
 			cs.StoreConnInfo(pid, clt)
 			if relayID.String() != "" {
 				cs.Map.Store(relayID, clt)
-				cs.StoreConnInfo(pid, clt)
+				cs.StoreConnInfo(relayID, clt)
 			}
 			// 创建clt完成后返回到开始
 			goto start

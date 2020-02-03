@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 	"sync"
 )
@@ -13,20 +12,24 @@ import (
 const (
 	RES = 'c'
 	RPS = 's'
-	defaultBufSize = 8192
+	defaultBufSize = 16384
 )
 
 var MAGIC = [3]byte{'Y', 'T', 'A'}
 
 var testCount  = 0
 
-func NewStreamHandler(conn io.ReadWriteCloser) (sconn *ReadWriteCloser, cconn *ReadWriteCloser){
+func NewStreamHandler(conn io.ReadWriteCloser, closeRwc bool) (sconn *ReadWriteCloser, cconn *ReadWriteCloser){
 	l := sync.Mutex{}
 
-	s := NewReadWriter()
-	sconn = &s
+	/*s := NewReadWriter()
+	sconn = s
 	c := NewReadWriter()
-	cconn = &c
+	cconn = c*/
+
+	sconn = NewReadWriter(conn, closeRwc)
+	cconn = NewReadWriter(conn, closeRwc)
+
 
 	buf := bufio.NewWriter(conn)
 
@@ -34,20 +37,25 @@ func NewStreamHandler(conn io.ReadWriteCloser) (sconn *ReadWriteCloser, cconn *R
 	go func(conn io.ReadWriteCloser, sconn *ReadWriteCloser, cconn *ReadWriteCloser) {
 		by := make([]byte, 16)
 		for {
-			if sconn.GetClose() == true || cconn.GetClose() == true {
+			if (sconn.GetClose() == true) || (cconn.GetClose() == true) {
 				sconn.SetReadErr()
 				cconn.SetReadErr()
-				_ = conn.Close()
+				_ = sconn.Close()
+				_ = cconn.Close()
+
+				//	err := conn.Close()
+				//	if err != nil {
+				//		fmt.Println(err)
+				//	}else {
+				//		fmt.Println("closed succeed")
+				//	}
+
 				return
 			}
 			f, _, msg, err := DecodeConn(conn, by)
-			///time.Sleep(time.Second*2)
-			//fmt.Printf("count:%d----f:%s\n", num, string(f))
-			//fmt.Printf("count:%d" + "----msg:" + string(msg) + "\n", testCount)
+
 			if err != nil  {
 				if err == io.EOF {
-					//log.Println(err)
-					//fmt.Println(err)
 					_ = sconn.Close()
 					_ = cconn.Close()
 				}
@@ -64,21 +72,19 @@ func NewStreamHandler(conn io.ReadWriteCloser) (sconn *ReadWriteCloser, cconn *R
 	}(conn, sconn, cconn)
 
 	var WCfunc = func(l *sync.Mutex, conn *ReadWriteCloser, flag byte, buf *bufio.Writer) {
-		msg := make([]byte, 2048 + 6)
+		msg := make([]byte, defaultBufSize + 6)
 		for {
-			if conn.isClose == true {
+			if conn.GetClose() == true {
 				return
 			}
-			n, err:= conn.WriteConsume(2048, flag, msg)
-			//fmt.Printf("sconn----->>>>>count:%d----n:%d\n", num, n)
+			n, err:= conn.WriteConsume(defaultBufSize, flag, msg)
 
 			if err != nil {
-				fmt.Println(err)
+				//fmt.Println(err)
 				continue
 			}
 			if n > 0 {
 				l.Lock()
-				//fmt.Println(msg[0:n+3])
 				_, err = buf.Write(msg[0:n+6])
 				if nil == err {
 					_ = buf.Flush()
@@ -347,12 +353,19 @@ func NewWriter() *Writer {
 }
 
 type Closer struct {
+	rwc    io.ReadWriteCloser
 	isClose 	bool
+	isCloseRwc 	bool
 }
 
 func (c * Closer) Close() error{
 	c.isClose = true
-	return nil
+	if c.isCloseRwc == true {
+		c.isCloseRwc = false
+		return c.rwc.Close()
+	}else {
+		return nil
+	}
 }
 
 func (c * Closer) GetClose() bool {
@@ -360,25 +373,45 @@ func (c * Closer) GetClose() bool {
 }
 
 type ReadWriteCloser struct {
-	Reader
-	Writer
-	Closer
+	*Closer
+	*Reader
+	*Writer
 }
 
-func NewReadWriter() ReadWriteCloser {
-	r := Reader{
+func NewReadWriter(iorwc io.ReadWriteCloser, iscolseRwc bool) *ReadWriteCloser {
+	r := new(Reader)
+	r.buf = make([]byte, defaultBufSize)
+	r.r = 0
+	r.w = 0
+	r.l = sync.Mutex{}
+	r.rc =  make(chan bool, 128)
+	/*r := &Reader{
 		buf: make([]byte, defaultBufSize),
 		r:   0,
 		w:   0,
 		l:   sync.Mutex{},
 		rc:	 make(chan bool, 128),
-	}
-	w := Writer{
+	}*/
+	w := new(Writer)
+	w.buf = make([]byte, defaultBufSize)
+	w.n = 0
+	w.l = sync.Mutex{}
+	w.wc =  make(chan bool, 128)
+	/*w := &Writer{
 		buf: make([]byte, defaultBufSize),
 		n:   0,
 		l:   sync.Mutex{},
 		wc:  make(chan bool, 128),
-	}
-	c := Closer{false}
-	return ReadWriteCloser{r, w, c}
+	}*/
+	c := new(Closer)
+	c.isClose = false
+	c.rwc = iorwc
+	c.isCloseRwc = iscolseRwc
+	//c := &Closer{false}
+	rwc := new(ReadWriteCloser)
+	rwc.Reader = r
+	rwc.Writer = w
+	rwc.Closer = c
+	//return &ReadWriteCloser{c, r, w }
+	return rwc
 }
